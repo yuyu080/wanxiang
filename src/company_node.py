@@ -9,17 +9,12 @@ company_node.py {version}
 '''
 
 import os
-import sys
 import re
-import datetime
-import time
-import json
 from functools import partial
-import hashlib
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
-from pyspark.sql import functions as fun, types as tp,
+from pyspark.sql import functions as fun, types as tp
 
 
 def filter_comma(col):
@@ -108,10 +103,10 @@ def spark_data_flow():
     prd_basic_df.coalesce(
         500
     ).write.parquet(
-        '''
-        hadoop fs -rmr {path}/prd_basic_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        ("{path}/"
+         "prd_basic_df/"
+         "{version}").format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
     )
         
     # black
@@ -199,7 +194,7 @@ def spark_data_flow():
     
     # 地域映射表
     mapping_df = spark.read.csv(
-        '{path}/{file_name}'.format(path=TMP_PATH, 
+        '{path}/{file_name}'.format(path=TMP_TWO_PATH, 
                                     file_name=FILE_NAME),
         sep='\t',
         header=True
@@ -326,7 +321,7 @@ def get_spark_session():
 
     spark = SparkSession \
         .builder \
-        .appName("wanxiang_person_node") \
+        .appName("wanxiang_company_node") \
         .config(conf = conf) \
         .enableHiveSupport() \
         .getOrCreate()  
@@ -350,31 +345,35 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170825'
-    XGXX_RELATION = '20170915'
+    RELATION_VERSION = '20170924'
+    XGXX_RELATION = '20170927'
     FILE_NAME = 'company_county_mapping_20170524.data'
     TMP_PATH = '/user/antifraud/graph_relation_construction'
+    TMP_TWO_PATH = '/user/antifraud/source/company_county_mapping'
     OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
     
-    basic_version = '20170915'
-    black_version = '20170915'
-    state_owned_version = '20170915'
-    ktgg_version = '20170915'
-    zgcpwsw_version = '20170915'
-    rmfygg_version = '20170915'
-    xzcf_version = '20170915'
-    zhixing_version = '20170915'
-    dishonesty_version = '20170915'
-    shangbiao_version = '20170915'
-    zhongbiao_version = '20170915' 
-    zhaobiao_version = '20170915'
-    zhuanli_version = '20170915'
-    tax_version = '20170915'
-    bgxx_version = '20170915'
-    recruit_version = '20170915'
-    fzjg_version = '20170915'
-    jyyc_version = '20170915'    
+    basic_version = '20170927'
+    black_version = '20170927'
+    state_owned_version = '20170927'
+    ktgg_version = '20170927'
+    zgcpwsw_version = '20170927'
+    rmfygg_version = '20170927'
+    xzcf_version = '20170927'
+    zhixing_version = '20170927'
+    dishonesty_version = '20170927'
+    shangbiao_version = '20170927'
+    zhongbiao_version = '20170927'
+    zhaobiao_version = '20170927'
+    zhuanli_version = '20170927'
+    tax_version = '20170927'
+    bgxx_version = '20170927'
+    recruit_version = '20170927'
+    fzjg_version = '20170927'
+    jyyc_version = '20170927'
 
+    #sparkSession
+    spark = get_spark_session()
+    
     run()
     
     

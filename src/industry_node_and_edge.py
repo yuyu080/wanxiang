@@ -9,17 +9,12 @@ industry_node_and_edge.py {version}
 '''
 
 import os
-import sys
 import re
-import datetime
-import time
-import json
 from functools import partial
-import hashlib
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
-from pyspark.sql import functions as fun, types as tp,
+from pyspark.sql import functions as fun, types as tp, Row
 
 
 def filter_comma(col):
@@ -44,17 +39,13 @@ def spark_data_flow():
     '''
     行业节点，可以根据“企业节点”的中间结果统计
     '''
-    filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
-    filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_industry_label_udf = fun.udf(get_industry_label, tp.StringType())
     get_industry_relation_label_udf = fun.udf(
         partial(lambda r: r, 'BELONG'), tp.StringType())
     
     prd_basic_df = spark.read.parquet(
-        '''
-        hadoop fs -rmr {path}/prd_basic_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        "{path}/prd_basic_df/{version}".format(path=TMP_PATH, 
+                                               version=RELATION_VERSION)
     )
 
     industry_data = [ 
@@ -146,7 +137,7 @@ def get_spark_session():
 
     spark = SparkSession \
         .builder \
-        .appName("wanxiang_person_node") \
+        .appName("wanxiang_industry_node_and_edge") \
         .config(conf = conf) \
         .enableHiveSupport() \
         .getOrCreate()  
@@ -176,11 +167,14 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170825'
-    XGXX_RELATION = '20170915'
+    RELATION_VERSION = '20170924'
+    XGXX_RELATION = '20170927'
     FILE_NAME = 'company_county_mapping_20170524.data'
     TMP_PATH = '/user/antifraud/graph_relation_construction'
     OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+
+    #sparkSession
+    spark = get_spark_session()
     
     run()
     

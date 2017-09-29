@@ -13,7 +13,7 @@ import re
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
-from pyspark.sql import functions as fun, types as tp,
+from pyspark.sql import functions as fun, types as tp
 
 
 def filter_comma(col):
@@ -128,8 +128,11 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170825'
+    RELATION_VERSION = '20170924'
     OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+
+    #sparkSession
+    spark = get_spark_session()
     
     run()
     

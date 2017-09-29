@@ -9,17 +9,13 @@ region_node_and_edge.py {version}
 '''
 
 import os
-import sys
 import re
-import datetime
-import time
-import json
 from functools import partial
-import hashlib
+
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
-from pyspark.sql import functions as fun, types as tp,
+from pyspark.sql import functions as fun, types as tp
 
 
 def filter_comma(col):
@@ -47,15 +43,13 @@ def spark_data_flow():
     
     # 城市中间数据
     prd_basic_df = spark.read.parquet(
-        '''
-        hadoop fs -rmr {path}/prd_basic_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        "{path}/prd_basic_df/{version}".format(path=TMP_PATH, 
+                                               version=RELATION_VERSION)
     )
     
     # 地域映射表
     mapping_df = spark.read.csv(
-        '{path}/{file_name}'.format(path=TMP_PATH, 
+        '{path}/{file_name}'.format(path=TMP_TWO_PATH, 
                                     file_name=FILE_NAME),
         sep='\t',
         header=True
@@ -147,11 +141,11 @@ def spark_data_flow():
     ).where(
         mapping_df.county.isNotNull()
     ).join(
-        prd_region_df,
-        prd_region_df.name == mapping_df.city
+        prd_region_node_df,
+        prd_region_node_df.name == mapping_df.city
     ).select(
         mapping_df.company_county.alias(':START_ID'),
-        prd_region_df['region_code:ID'].alias(':END_ID'),
+        prd_region_node_df['region_code:ID'].alias(':END_ID'),
         fun.unix_timestamp().alias('create_time:long'),
         get_region_relation_label_udf().alias(':TYPE')
     )
@@ -169,11 +163,11 @@ def spark_data_flow():
     ).where(
         mapping_df.province.isNotNull()
     ).join(
-        prd_region_df,
-        prd_region_df.name == mapping_df.province
+        prd_region_node_df,
+        prd_region_node_df.name == mapping_df.province
     ).select(
         mapping_df.company_county.alias(':START_ID'),
-        prd_region_df['region_code:ID'].alias(':END_ID'),
+        prd_region_node_df['region_code:ID'].alias(':END_ID'),
         fun.unix_timestamp().alias('create_time:long'),
         get_region_relation_label_udf().alias(':TYPE')
     )
@@ -209,7 +203,7 @@ def get_spark_session():
 
     spark = SparkSession \
         .builder \
-        .appName("wanxiang_person_node") \
+        .appName("wanxiang_region_node_and_edge") \
         .config(conf = conf) \
         .enableHiveSupport() \
         .getOrCreate()  
@@ -224,7 +218,7 @@ def run():
         hadoop fs -rmr {path}/{version}/region_node
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_region_df.write.csv(
+    prd_region_node_df.write.csv(
         '{path}/{version}/region_node'.format(path=OUT_PATH, 
                                               version=RELATION_VERSION))
 
@@ -242,10 +236,14 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170825'
+    RELATION_VERSION = '20170924'
     FILE_NAME = 'company_county_mapping_20170524.data'
     TMP_PATH = '/user/antifraud/graph_relation_construction'
+    TMP_TWO_PATH = '/user/antifraud/source/company_county_mapping'
     OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    
+    #sparkSession
+    spark = get_spark_session()    
     
     run()
     

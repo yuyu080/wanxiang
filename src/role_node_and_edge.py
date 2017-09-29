@@ -9,17 +9,13 @@ role_node_and_edge.py {version}
 '''
 
 import os
-import sys
 import re
-import datetime
-import time
-import json
 from functools import partial
 import hashlib
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
-from pyspark.sql import functions as fun, types as tp,
+from pyspark.sql import functions as fun, types as tp
 
 
 def filter_comma(col):
@@ -199,7 +195,7 @@ def get_spark_session():
 
     spark = SparkSession \
         .builder \
-        .appName("wanxiang_person_node") \
+        .appName("wanxiang_role_node_and_edge") \
         .config(conf = conf) \
         .enableHiveSupport() \
         .getOrCreate()  
@@ -260,8 +256,11 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170825'
+    RELATION_VERSION = '20170924'
     OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+
+    #sparkSession
+    spark = get_spark_session()
     
     run()
     

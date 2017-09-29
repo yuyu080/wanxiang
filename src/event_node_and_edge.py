@@ -9,17 +9,15 @@ event_node_and_edge.py {version}
 '''
 
 import os
-import sys
 import re
 import datetime
 import time
-import json
 from functools import partial
-import hashlib
+
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
-from pyspark.sql import functions as fun, types as tp,
+from pyspark.sql import functions as fun, types as tp, DataFrame
 
 
 def filter_comma(col):
@@ -85,16 +83,16 @@ def raw_spark_data_flow():
     xgxx_relation_df.coalesce(
         300
     ).write.parquet(
-        '''
-        {path}/xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+        ('{path}/'
+         'xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=XGXX_RELATION)
     )
     xgxx_relation_df = spark.read.parquet(
-        '''
-        {path}/xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+        ('{path}/'
+         'xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=XGXX_RELATION)
     )
     
     
@@ -226,7 +224,6 @@ def tid_spark_data_flow():
         '''根据某表是否有事件时间，选择不同的读取方式'''
         try:
             if table_dict[table_name]:
-                event_time = table_dict[table_name]
                 df = spark.sql(
                     '''
                     SELECT
@@ -315,6 +312,7 @@ def prd_spark_data_flow():
     '''
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
+    get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
     
     xgxx_relation_df = spark.read.parquet(
         '''
@@ -358,30 +356,26 @@ def prd_spark_data_flow():
     ).coalesce(
         100
     ).write.parquet(
-        '''
-        {path}/tid_xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+        "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
+                                                       version=XGXX_RELATION)
     )
 
 def prd_spark_graph_data_flow():
     '''
     获取角色节点
     '''
+    filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
+    filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_Event_udf = fun.udf(
         partial(get_type, 'Entity', 'Event'), 
         tp.StringType()
     )    
-    get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
     get_event_relation_udf = fun.udf(
         partial(lambda r: r, 'INVOLVE'), tp.StringType())    
     
     tid_xgxx_relation_df = spark.read.parquet(
-        '''
-        hadoop fs -rmr {path}/tid_xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
-    )
+        "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
+                                                       version=XGXX_RELATION))
     
     # 事件节点
     prd_event_nodes_df = tid_xgxx_relation_df.select(
@@ -410,7 +404,7 @@ def prd_spark_graph_data_flow():
         filter_comma_udf('bbd_event_id:ID')
     ).dropDuplicates(
         ['bbd_event_id:ID']
-    )    
+    )
 
     # 事件关系
     prd_event_edge_df = tid_xgxx_relation_df.select(
@@ -449,7 +443,7 @@ def get_spark_session():
 
     spark = SparkSession \
         .builder \
-        .appName("wanxiang_person_node") \
+        .appName("wanxiang_event_node_and_edge") \
         .config(conf = conf) \
         .enableHiveSupport() \
         .getOrCreate()  
@@ -491,11 +485,14 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170825'
-    XGXX_RELATION = '20170915'
+    RELATION_VERSION = '20170924'
+    XGXX_RELATION = '20170927'
     
-    TMP_PATH = '/user/antifraud/graph_relation_construction'
+    TMP_PATH = '/user/antifraud/graph_relation_construction/'
     OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+
+    #sparkSession
+    spark = get_spark_session()
     
     run()
     
