@@ -110,8 +110,8 @@ def raw_spark_data_flow():
     
     # 包含每个表event字段的df
     table_envnt_date_df = spark.read.csv(
-        '{path}/input/{file_name}'.format(path=IN_PATH,
-                                          file_name=FILE_NAME),
+        '{path}/{file_name}'.format(path=IN_PATH,
+                                    file_name=FILE_NAME),
         sep='\t'
     ).fillna(
         u'无'
