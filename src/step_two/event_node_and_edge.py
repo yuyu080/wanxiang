@@ -735,7 +735,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_black_event_nodes_df.coalesce(30).write.csv(
+    prd_black_event_nodes_df.coalesce(600).write.csv(
         '{path}/{version}/event_node_black_list'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -746,7 +746,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_black_event_edge_df.coalesce(30).write.csv(
+    prd_black_event_edge_df.coalesce(600).write.csv(
         '{path}/{version}/event_edge_black_list'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -757,7 +757,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_event_nodes_df.coalesce(30).write.csv(
+    prd_event_nodes_df.coalesce(600).write.csv(
         '{path}/{version}/event_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))    
@@ -768,7 +768,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_event_edge_df.coalesce(30).write.csv(
+    prd_event_edge_df.coalesce(600).write.csv(
         '{path}/{version}/event_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))

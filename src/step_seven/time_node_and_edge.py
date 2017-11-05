@@ -258,7 +258,7 @@ def run():
         hadoop fs -rmr {path}/{version}/time_node
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_time_node_df.coalesce(30).write.csv(
+    prd_time_node_df.coalesce(600).write.csv(
         '{path}/{version}/time_node'.format(path=OUT_PATH,
                                             version=RELATION_VERSION))    
     
@@ -267,7 +267,7 @@ def run():
         hadoop fs -rmr {path}/{version}/time_edge
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_time_edge_df.coalesce(30).write.csv(
+    prd_time_edge_df.coalesce(600).write.csv(
         '{path}/{version}/time_edge'.format(path=OUT_PATH,
                                             version=RELATION_VERSION))    
     

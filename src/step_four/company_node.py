@@ -405,7 +405,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_rdd.coalesce(30).saveAsTextFile(
+    prd_rdd.coalesce(600).saveAsTextFile(
         '{path}/{version}/company_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))

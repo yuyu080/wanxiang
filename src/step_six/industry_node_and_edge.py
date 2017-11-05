@@ -153,7 +153,7 @@ def run():
         hadoop fs -rmr {path}/{version}/industry_node
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_industry_node_df.coalesce(30).write.csv(
+    prd_industry_node_df.coalesce(600).write.csv(
         '{path}/{version}/industry_node'.format(path=OUT_PATH,
                                                 version=RELATION_VERSION))
 
@@ -162,7 +162,7 @@ def run():
         hadoop fs -rmr {path}/{version}/industry_edge
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_industry_edge_df.coalesce(30).write.csv(
+    prd_industry_edge_df.coalesce(600).write.csv(
         '{path}/{version}/industry_edge'.format(path=OUT_PATH,
                                                 version=RELATION_VERSION))
     

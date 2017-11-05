@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # 本地项目路径
     IN_PATH = './'
     
-    RELATION_VERSION = '20170924'
-    XGXX_RELATION = '20170927'
+    RELATION_VERSION = '20171018'
+    XGXX_RELATION = '20171101'
 
     run()

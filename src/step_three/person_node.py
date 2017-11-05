@@ -220,7 +220,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_person_df.coalesce(30).write.csv(
+    prd_person_df.coalesce(600).write.csv(
         '{path}/{version}/person_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))    

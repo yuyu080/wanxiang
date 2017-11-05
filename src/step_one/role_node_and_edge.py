@@ -313,7 +313,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_isinvest_role_node_df.coalesce(30).write.csv(
+    prd_isinvest_role_node_df.coalesce(600).write.csv(
         '{path}/{version}/isinvest_role_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -324,7 +324,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_role_node_df.coalesce(30).write.csv(
+    prd_role_node_df.coalesce(600).write.csv(
         '{path}/{version}/role_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))    
@@ -335,7 +335,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_isinvest_role_edge_df.coalesce(30).write.csv(
+    prd_isinvest_role_edge_df.coalesce(600).write.csv(
         '{path}/{version}/isinvest_role_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -350,7 +350,7 @@ def run():
         prd_role_edge_df[':START_ID'] != ''
     ).where(
         prd_role_edge_df[':END_ID'] != ''
-    ).coalesce(30).write.csv(
+    ).coalesce(600).write.csv(
         '{path}/{version}/role_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
