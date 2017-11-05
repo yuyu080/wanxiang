@@ -5,12 +5,12 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-company_node.py {version}
+company_node.py {xgxx_relation} {relation_version}
 '''
 
+import sys
 import os
 import re
-from functools import partial
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
@@ -32,13 +32,20 @@ def filter_chinaese(col):
     else:
         return False
 
+def get_label(x):
+    try:
+        return x.split(';')[2]
+    except:
+        return ''
+        
 def spark_data_flow():
     '''
     STEP 1：数据准备
     '''
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
-
+    get_label_udf = fun.udf(get_label , tp.StringType())
+    
     # 自然人节点
     person_df = spark.read.csv(
         '{path}/{version}/person_node'.format(
@@ -55,6 +62,8 @@ def spark_data_flow():
         if(ipo_company = 'null', null, ipo_company) ipo_company,
         regcap_amount,
         realcap_amount,
+        regcap_currency,
+        realcap_currency,
         cast(esdate as string) esdate,
         regexp_replace(regexp_replace(address,',',''),'\"','') address,
         enterprise_status,
@@ -109,20 +118,6 @@ def spark_data_flow():
                              version=RELATION_VERSION)
     )
         
-    # black
-    black_count_df = spark.sql(
-        '''
-        SELECT
-        bbd_qyxx_id,
-        count(*) black_num
-        FROM
-        dw.black_list
-        WHERE
-        dt='{version}'  
-        GROUP BY 
-        bbd_qyxx_id
-        '''.format(version=black_version)
-    )
     
     # state_owned
     so_count_df = spark.sql(
@@ -142,7 +137,7 @@ def spark_data_flow():
     # 节点的统计属性需要与相关信息节点对应起来，因此这里直接使用事件节点的中间结果来统计
     tid_xgxx_relation_df = spark.read.parquet(
         '{path}/tid_xgxx_relation_df/{version}'.format(path=TMP_PATH,
-                                                       version=XGXX_RELATION)
+                                                       version=RELATION_VERSION)
     )
     all_xgxx_info_df = tid_xgxx_relation_df.groupBy(
         ['bbd_qyxx_id', 'bbd_table']
@@ -162,39 +157,9 @@ def spark_data_flow():
         'collect_list(each_xgxx_info)', 'all_xgxx_info'
     )
     
-    # bgxx
-    bgxx_count_df = spark.sql(
-        '''
-        SELECT 
-        bbd_qyxx_id,
-        count(*) change_num
-        FROM
-        dw.qyxx_bgxx
-        WHERE
-        dt='{version}' 
-        GROUP BY 
-        bbd_qyxx_id
-        '''.format(version=bgxx_version)
-    )
-    
-    # 分支机构
-    fzjg_count_df = spark.sql(
-        '''
-        SELECT
-        bbd_qyxx_id,
-        count(*) fzjg_num
-        FROM
-        dw.qyxx_fzjg_extend
-        WHERE
-        dt='{version}'
-        GROUP BY 
-        bbd_qyxx_id
-        '''.format(version=fzjg_version)
-    )
-    
     # 地域映射表
     mapping_df = spark.read.csv(
-        '{path}/{file_name}'.format(path=TMP_TWO_PATH, 
+        '{path}/{file_name}'.format(path=IN_PATH, 
                                     file_name=FILE_NAME),
         sep='\t',
         header=True
@@ -204,11 +169,81 @@ def spark_data_flow():
         ['company_county']
     )
 
+    # 中间结果
+    tmp_role_df = spark.read.parquet(
+        "{path}/tmp_role_df/{version}".format(path=TMP_PATH, 
+                                              version=RELATION_VERSION))
+
+    # fzjg
+    tmp_fzjg_df = tmp_role_df.where(
+        tmp_role_df.TYPE == 'OF'
+    ).where(
+        get_label_udf('START_LABEL') == 'Branch'
+    ).groupBy(
+        'END_ID'
+    ).count(
+    ).withColumnRenamed(
+        'count', 'fzjg'
+    ).withColumnRenamed(
+        'END_ID', 'bbd_qyxx_id'
+    ).cache()
+    
+    # dwtzxx
+    tmp_dwtzxx_df = tmp_role_df.where(
+        tmp_role_df.TYPE == 'IS'
+    ).where(
+        get_label_udf('END_LABEL') == 'Invest'
+    ).groupBy(
+        'START_ID'
+    ).count(
+    ).withColumnRenamed(
+        'count', 'dwtzxx'
+    ).withColumnRenamed(
+        'START_ID', 'bbd_qyxx_id'
+    ).cache()
+    
+    # gdxx
+    tmp_gdxx_df = tmp_role_df.where(
+        tmp_role_df.TYPE == 'OF'
+    ).where(
+        get_label_udf('START_LABEL') == 'Invest'
+    ).groupBy(
+        'END_ID'
+    ).count(
+    ).withColumnRenamed(
+        'count', 'gdxx'
+    ).withColumnRenamed(
+        'END_ID', 'bbd_qyxx_id'
+    ).cache()
+    
+    # baxx
+    tmp_baxx_df = tmp_role_df.where(
+        tmp_role_df.TYPE == 'OF'
+    ).where(
+        fun.when(
+            get_label_udf('START_LABEL') == 'Supervisor', True
+        ).when(
+            get_label_udf('START_LABEL') == 'Director', True
+        ).when(
+            get_label_udf('START_LABEL') == 'Executive', True
+        ).otherwise(
+            False
+        )
+    ).groupBy(
+        'END_ID'
+    ).count(
+    ).withColumnRenamed(
+        'count', 'baxx'
+    ).withColumnRenamed(
+        'END_ID', 'bbd_qyxx_id'
+    ).cache()
+    
+
     '''
     STEP 2.0 合并中间结果，由于涉及到多列解析，因此用rdd来输出最终结果
     '''
     tid_df = prd_basic_df.join(
-        black_count_df,
+        all_xgxx_info_df,
         'bbd_qyxx_id',
         'left_outer'
     ).join(
@@ -216,15 +251,19 @@ def spark_data_flow():
         'bbd_qyxx_id',
         'left_outer'
     ).join(
-        all_xgxx_info_df,
+        tmp_fzjg_df,
         'bbd_qyxx_id',
         'left_outer'
     ).join(
-        bgxx_count_df,
+        tmp_dwtzxx_df,
         'bbd_qyxx_id',
         'left_outer'
     ).join(
-        fzjg_count_df,
+        tmp_gdxx_df,
+        'bbd_qyxx_id',
+        'left_outer'
+    ).join(
+        tmp_baxx_df,
         'bbd_qyxx_id',
         'left_outer'
     ).join(
@@ -235,6 +274,12 @@ def spark_data_flow():
         'create_time', fun.unix_timestamp()
     ).withColumn(
         'update_time', fun.unix_timestamp()
+    ).fillna(
+        '-'
+    ).replace(
+        '', '-'
+    ).replace(
+        'null', '-'
     ).cache()
     
     def get_company_info(row):
@@ -256,7 +301,6 @@ def spark_data_flow():
         result = [
             row['bbd_qyxx_id'],
             'false',
-            'true' if row['black_num'] else 'false',
             'true' if row['ipo_company'] != '-' else 'false',
             row['company_name'],
             'true' if row['so_num'] else 'false',
@@ -272,12 +316,28 @@ def spark_data_flow():
             get_some_xgxx_info('shgy_zhaobjg'),
             get_some_xgxx_info('qyxx_zhuanli'),
             get_some_xgxx_info('qyxg_qyqs'),
-            str(row['change_num']) if row['change_num'] else '0',
+            get_some_xgxx_info('qyxx_bgxx'),
             get_some_xgxx_info('recruit'),
-            str(row['fzjg_num']) if row['fzjg_num'] else '0',
+            get_some_xgxx_info('qyxg_jyyc'),
+            get_some_xgxx_info('black_list'),
+            get_some_xgxx_info('sfpm_taobao'),
+            get_some_xgxx_info('qyxx_liquidation'),
+            get_some_xgxx_info('qyxx_sharesfrost'),
+            str(row['fzjg']) if row['fzjg'] else '0',
+            str(row['dwtzxx']) if row['dwtzxx'] else '0',
+            str(row['gdxx']) if row['gdxx'] else '0',
+            str(row['baxx']) if row['baxx'] else '0',
+            get_some_xgxx_info('qyxg_xzxk'),
+            get_some_xgxx_info('qyxx_sharesimpawn'),
+            get_some_xgxx_info('qyxx_mordetail'),
+            get_some_xgxx_info('qyxg_yuqing'),
+            get_some_xgxx_info('rjzzq'),
+            get_some_xgxx_info('zpzzq'),
+            get_some_xgxx_info('domain_name_website_info'),
+            get_some_xgxx_info('overseas_investment'),
+            get_some_xgxx_info('qyxx_nb_jbxx'),
             str(row['company_gis_lon']),
             str(row['company_gis_lat']),
-            get_some_xgxx_info('qyxg_jyyc'),
             row['address'],
             row['enterprise_status'].replace(',', u'\uff0c'),
             row['province'] if row['province'] else '-',
@@ -286,7 +346,9 @@ def spark_data_flow():
             row['company_industry'],
             row['company_type'].replace(',', u'\uff0c'),
             str(row['regcap_amount']),
+            row['regcap_currency'],
             str(row['realcap_amount']),
+            row['realcap_currency'],
             str(row['create_time']),
             str(row['update_time']),
             'Entity;Company'
@@ -294,7 +356,13 @@ def spark_data_flow():
         
         return ','.join(
             map(
-                lambda r: r.replace(',', u'\uff0c'), result
+                lambda r: r.replace(
+                    ',', u'\uff0c'
+                ).replace(
+                    '\\', ''
+                ).replace(
+                    '"', ''
+                ), result
             )
         )
     
@@ -337,7 +405,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_rdd.saveAsTextFile(
+    prd_rdd.coalesce(30).saveAsTextFile(
         '{path}/{version}/company_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -345,31 +413,31 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170924'
-    XGXX_RELATION = '20170927'
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
     FILE_NAME = 'company_county_mapping_20170524.data'
-    TMP_PATH = '/user/antifraud/graph_relation_construction'
-    TMP_TWO_PATH = '/user/antifraud/source/company_county_mapping'
-    OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    IN_PATH = '/user/wanxiang/inputdata'
+    TMP_PATH = '/user/wanxiang/tmpdata'
+    OUT_PATH = '/user/wanxiang/step_one'
     
-    basic_version = '20170927'
-    black_version = '20170927'
-    state_owned_version = '20170927'
-    ktgg_version = '20170927'
-    zgcpwsw_version = '20170927'
-    rmfygg_version = '20170927'
-    xzcf_version = '20170927'
-    zhixing_version = '20170927'
-    dishonesty_version = '20170927'
-    shangbiao_version = '20170927'
-    zhongbiao_version = '20170927'
-    zhaobiao_version = '20170927'
-    zhuanli_version = '20170927'
-    tax_version = '20170927'
-    bgxx_version = '20170927'
-    recruit_version = '20170927'
-    fzjg_version = '20170927'
-    jyyc_version = '20170927'
+    basic_version = XGXX_RELATION
+    black_version = XGXX_RELATION
+    state_owned_version = XGXX_RELATION
+    ktgg_version = XGXX_RELATION
+    zgcpwsw_version = XGXX_RELATION
+    rmfygg_version = XGXX_RELATION
+    xzcf_version = XGXX_RELATION
+    zhixing_version = XGXX_RELATION
+    dishonesty_version = XGXX_RELATION
+    shangbiao_version = XGXX_RELATION
+    zhongbiao_version = XGXX_RELATION
+    zhaobiao_version = XGXX_RELATION
+    zhuanli_version = XGXX_RELATION
+    tax_version = XGXX_RELATION
+    bgxx_version = XGXX_RELATION
+    recruit_version = XGXX_RELATION
+    fzjg_version = XGXX_RELATION
+    jyyc_version = XGXX_RELATION
 
     #sparkSession
     spark = get_spark_session()

@@ -5,9 +5,10 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-role_node_and_edge.py {version}
+role_node_and_edge.py {xgxx_relation} {relation_version}
 '''
 
+import sys
 import os
 import re
 from functools import partial
@@ -78,7 +79,8 @@ def spark_data_flow():
         SELECT 
         source_bbd_id           b,
         destination_bbd_id      c,
-        relation_type           bc_relation
+        upper(relation_type)    bc_relation,
+        position
         FROM 
         dw.off_line_relations 
         WHERE 
@@ -125,7 +127,8 @@ def spark_data_flow():
         'b',
         get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
         'c',
-        'bc_relation'
+        'bc_relation',
+        'position'
     ).where(
         filter_comma_udf('b')
     ).where(
@@ -136,14 +139,101 @@ def spark_data_flow():
         filter_chinaese_udf('c')
     ).cache()
     
-    prd_role_node_df = tid_role_df.where(
-        tid_role_df['bbd_role_id:ID'] != ''
+    # 给投资节点加上投资比例，其余节点的比例为空
+    raw_qyxx_gdxx_ratio = spark.sql(
+        '''
+        
+        SELECT
+        shareholder_id b,
+        bbd_qyxx_id c,
+        'INVEST' bc_relation,
+        invest_ratio ratio
+        FROM
+        ods.qyxx_gdxx
+        WHERE
+        dt='{version}'
+        '''.format(version=XGXX_RELATION)
     ).select(
-        'bbd_role_id:ID',
+        'b',
+        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        'c',
+        'bc_relation',
+        'ratio'
+    ).replace(
+        "null", '-'
+    ).dropDuplicates(
+        ['bbd_role_id:ID']
+    )
+    
+    # 加上“分支机构”这一新的角色节点
+    raw_qyxx_fzjg_merge = spark.sql(
+        '''
+        SELECT
+        bbd_branch_id b,
+        bbd_qyxx_id c,
+        'BRANCH' bc_relation,
+        '分支机构' role_name,
+        '-' ratio
+        FROM
+        ods.qyxx_fzjg_merge
+        WHERE
+        dt='{version}'
+        '''.format(version=XGXX_RELATION)
+    ).dropDuplicates(
+        ['b', 'c', 'bc_relation']
+    )
+    
+    tid_qyxx_fzjg_merge = raw_qyxx_fzjg_merge.where(
+        "b != 'None'"
+    ).where(
+        filter_comma_udf('b')
+    ).where(
+        filter_chinaese_udf('b')
+    ).where(
+        filter_comma_udf('c')
+    ).where(
+        filter_chinaese_udf('c')
+    ).select(
+        'b',
+        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        'c',
+        'bc_relation',
+        'role_name',
+        'ratio',
+    )
+    
+    prd_qyxx_fzjg_merge = tid_qyxx_fzjg_merge.select(
+        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        'role_name',
+        'ratio',
         fun.unix_timestamp().alias('create_time:long'),
-        fun.unix_timestamp().alias('update_time:long'),    
+        fun.unix_timestamp().alias('update_time:long'),
         get_role_label_udf('bc_relation').alias(':LABEL')
     )
+
+    # 生成最终角色节点
+    prd_role_node_df = tid_role_df.where(
+        tid_role_df['bbd_role_id:ID'] != ''
+    ).join(
+        raw_qyxx_gdxx_ratio,
+        'bbd_role_id:ID',
+        'left_outer'
+    ).select(
+        tid_role_df['bbd_role_id:ID'],
+        tid_role_df.position.alias('role_name'),
+        raw_qyxx_gdxx_ratio.ratio.alias("ratio"),
+        fun.unix_timestamp().alias('create_time:long'),
+        fun.unix_timestamp().alias('update_time:long'),    
+        get_role_label_udf(tid_role_df['bc_relation']).alias(':LABEL')
+    ).union(
+        prd_qyxx_fzjg_merge
+    ).fillna(
+        '-'
+    ).replace(
+        '', '-'
+    ).replace(
+        'null', '-'
+    ).cache()
 
     # Isinvest： 虚拟角色节点的关系
     prd_isinvest_role_edge_df = tid_isinvest_role_df.select(
@@ -161,15 +251,26 @@ def spark_data_flow():
     )
     
     # role：角色节点的关系
-    prd_role_edge_df = tid_role_df.select(
-        tid_role_df.b.alias(':START_ID'), 
-        tid_role_df['bbd_role_id:ID'].alias(':END_ID'),
+    # 将所有关系融合
+    tid_all_role_df = tid_role_df.union(
+        tid_qyxx_fzjg_merge.select(
+            'b',
+            'bbd_role_id:ID',
+            'c',
+            'bc_relation',
+            'role_name'
+        )
+    ).cache()
+        
+    prd_role_edge_df = tid_all_role_df.select(
+        tid_all_role_df.b.alias(':START_ID'), 
+        tid_all_role_df['bbd_role_id:ID'].alias(':END_ID'),
         fun.unix_timestamp().alias('create_time:long'),
         get_relation_label_1_udf().alias(':TYPE')
     ).union(
-        tid_role_df.select(
-            tid_role_df['bbd_role_id:ID'].alias(':START_ID'), 
-            tid_role_df.c.alias(':END_ID'),
+        tid_all_role_df.select(
+            tid_all_role_df['bbd_role_id:ID'].alias(':START_ID'), 
+            tid_all_role_df.c.alias(':END_ID'),
             fun.unix_timestamp().alias('create_time:long'),
             get_relation_label_2_udf().alias(':TYPE')
         )
@@ -212,7 +313,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_isinvest_role_node_df.write.csv(
+    prd_isinvest_role_node_df.coalesce(30).write.csv(
         '{path}/{version}/isinvest_role_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -223,7 +324,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_role_node_df.write.csv(
+    prd_role_node_df.coalesce(30).write.csv(
         '{path}/{version}/role_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))    
@@ -234,7 +335,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_isinvest_role_edge_df.write.csv(
+    prd_isinvest_role_edge_df.coalesce(30).write.csv(
         '{path}/{version}/isinvest_role_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -249,15 +350,16 @@ def run():
         prd_role_edge_df[':START_ID'] != ''
     ).where(
         prd_role_edge_df[':END_ID'] != ''
-    ).write.csv(
+    ).coalesce(30).write.csv(
         '{path}/{version}/role_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170924'
-    OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
+    OUT_PATH = '/user/wanxiang/step_one'
 
     #sparkSession
     spark = get_spark_session()

@@ -5,9 +5,10 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-time_node_and_edge.py {version}
+time_node_and_edge.py {xgxx_relation} {relation_version}
 '''
 
+import sys
 import os
 import re
 import datetime
@@ -70,7 +71,7 @@ def spark_data_flow():
     get_time_relation_label_udf = fun.udf(
         partial(lambda r: r, 'BELONG'), tp.StringType())
 
-    year_range = range(1970, 2020) 
+    year_range = range(1970, 2025) 
     month_range = [
         '01', '02', '03',
         '04', '05', '06',
@@ -79,12 +80,12 @@ def spark_data_flow():
     ]
     tid_xgxx_relation_df = spark.read.parquet(
         "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
-                                                       version=XGXX_RELATION)
+                                                       version=RELATION_VERSION)
     )
     
 
     # 年节点
-    YEAR_LIST = [str(_) for _ in range(1970, 2020)]
+    YEAR_LIST = [str(_) for _ in range(1970, 2025)]
     
     # 月节点
     MONTH_LIST = ['{0}-{1}'.format(year, month) 
@@ -257,7 +258,7 @@ def run():
         hadoop fs -rmr {path}/{version}/time_node
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_time_node_df.write.csv(
+    prd_time_node_df.coalesce(30).write.csv(
         '{path}/{version}/time_node'.format(path=OUT_PATH,
                                             version=RELATION_VERSION))    
     
@@ -266,16 +267,16 @@ def run():
         hadoop fs -rmr {path}/{version}/time_edge
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_time_edge_df.write.csv(
+    prd_time_edge_df.coalesce(30).write.csv(
         '{path}/{version}/time_edge'.format(path=OUT_PATH,
                                             version=RELATION_VERSION))    
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170924'
-    XGXX_RELATION = '20170927'
-    TMP_PATH = '/user/antifraud/graph_relation_construction'
-    OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
+    TMP_PATH = '/user/wanxiang/tmpdata'
+    OUT_PATH = '/user/wanxiang/step_one'
     
     #sparkSession
     spark = get_spark_session()

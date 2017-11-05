@@ -5,9 +5,10 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-region_node_and_edge.py {version}
+region_node_and_edge.py {xgxx_relation} {relation_version}
 '''
 
+import sys
 import os
 import re
 from functools import partial
@@ -49,7 +50,7 @@ def spark_data_flow():
     
     # 地域映射表
     mapping_df = spark.read.csv(
-        '{path}/{file_name}'.format(path=TMP_TWO_PATH, 
+        '{path}/{file_name}'.format(path=IN_PATH, 
                                     file_name=FILE_NAME),
         sep='\t',
         header=True
@@ -59,7 +60,9 @@ def spark_data_flow():
         ['company_county']
     )    
     
-    raw_region_df = mapping_df.where(
+
+    # 获取地域节点的唯一ID
+    region_id_df = mapping_df.where(
         mapping_df.county.isNotNull()
     ).select(
         'county', 'company_county'
@@ -86,7 +89,7 @@ def spark_data_flow():
     ).cache()
     
     # 地域公司数量分布
-    tmp_region_df = prd_basic_df.select(
+    raw_region_df = prd_basic_df.select(
         'company_county'
     ).groupBy(
         'company_county'
@@ -95,24 +98,56 @@ def spark_data_flow():
         'count', 'company_num'
     )
     
-    # 输出
-    prd_region_node_df = raw_region_df.join(
-        tmp_region_df,
+    # 各省份分布
+    tmp_region_df = mapping_df.join(
+        raw_region_df,
         'company_county',
         'left_outer'
+    ).fillna(
+        0L
+    ).dropDuplicates(
+        ['company_county']
+    ).cache()
+    
+    tmp_region_2_df = tmp_region_df.groupBy(
+        'province'
+    ).agg(
+        {'company_num': 'sum'}
+    ).union(
+        tmp_region_df.groupBy(
+            'city'
+        ).agg(
+            {'company_num': 'sum'}
+        )
+    ).union(
+        tmp_region_df.groupBy(
+            'county'
+        ).agg(
+            {'company_num': 'sum'}
+        )
+    )
+    
+    
+    # 输出
+    prd_region_node_df = tmp_region_2_df.join(
+        region_id_df,
+        tmp_region_2_df.province == region_id_df.region
     ).select(
-        raw_region_df.company_county.alias('region_code:ID'),
+        region_id_df.company_county.alias('region_code:ID'),
         fun.when(
-            tmp_region_df.company_num.isNotNull(), 
-            tmp_region_df.company_num
+            tmp_region_2_df['sum(company_num)'].isNotNull(), 
+            tmp_region_2_df['sum(company_num)']
         ).otherwise(
             0
         ).alias('company_num:int'),
-        raw_region_df.region.alias('name'),
+        region_id_df.region.alias('name'),
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),
         get_region_label_udf().alias(':LABEL')
+    ).dropDuplicates(
+        ['region_code:ID']
     ).cache()
+    
 
     '''
     地域节点与其他节点的关系
@@ -218,7 +253,7 @@ def run():
         hadoop fs -rmr {path}/{version}/region_node
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_region_node_df.write.csv(
+    prd_region_node_df.coalesce(30).write.csv(
         '{path}/{version}/region_node'.format(path=OUT_PATH, 
                                               version=RELATION_VERSION))
 
@@ -229,18 +264,19 @@ def run():
             path=OUT_PATH,
             version=RELATION_VERSION))
     
-    prd_region_edge_df.write.csv(
+    prd_region_edge_df.coalesce(30).write.csv(
         '{path}/{version}/region_edge'.format(path=OUT_PATH,
                                               version=RELATION_VERSION))
 
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170924'
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
     FILE_NAME = 'company_county_mapping_20170524.data'
-    TMP_PATH = '/user/antifraud/graph_relation_construction'
-    TMP_TWO_PATH = '/user/antifraud/source/company_county_mapping'
-    OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    IN_PATH = '/user/wanxiang/inputdata'
+    TMP_PATH = '/user/wanxiang/tmpdata'
+    OUT_PATH = '/user/wanxiang/step_one'
     
     #sparkSession
     spark = get_spark_session()    

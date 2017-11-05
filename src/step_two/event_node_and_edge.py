@@ -5,13 +5,14 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-event_node_and_edge.py {version}
+event_node_and_edge.py {xgxx_relation} {relation_version}
 '''
-
+import sys
 import os
 import re
 import datetime
 import time
+import hashlib
 from functools import partial
 
 
@@ -62,9 +63,14 @@ def get_standard_date(date):
     except:
         return date
 
+def get_xgxx_id(*cols):
+    xgxx_id = hashlib.md5(''.join(map(lambda s: s.encode('utf-8'), cols)))
+    return xgxx_id.hexdigest()
+
+
 def raw_spark_data_flow():
     '''
-    STEP 1. 创建table_list与col_dict, 明确需要哪些输入表
+    STEP 0. 创建table_list与col_dict, 明确需要哪些输入表
     ''' 
     
     # 原始相关信息
@@ -78,7 +84,7 @@ def raw_spark_data_flow():
         '''
         hadoop fs -rmr {path}/xgxx_relation_df/{version}
         '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+                   version=RELATION_VERSION)
     )
     xgxx_relation_df.coalesce(
         300
@@ -86,13 +92,13 @@ def raw_spark_data_flow():
         ('{path}/'
          'xgxx_relation_df/'
          '{version}').format(path=TMP_PATH, 
-                             version=XGXX_RELATION)
+                             version=RELATION_VERSION)
     )
     xgxx_relation_df = spark.read.parquet(
         ('{path}/'
          'xgxx_relation_df/'
          '{version}').format(path=TMP_PATH, 
-                             version=XGXX_RELATION)
+                             version=RELATION_VERSION)
     )
     
     
@@ -104,7 +110,8 @@ def raw_spark_data_flow():
     
     # 包含每个表event字段的df
     table_envnt_date_df = spark.read.csv(
-        '{path}/input/raw_graph_event_col_20170829.data'.format(path=TMP_PATH),
+        '{path}/input/{file_name}'.format(path=IN_PATH,
+                                          file_name=FILE_NAME),
         sep='\t'
     ).fillna(
         u'无'
@@ -126,7 +133,6 @@ def raw_spark_data_flow():
        ,'dcos'
        ,'dishonesty'
        ,'ktgg'
-       ,'overseas_investment'
        ,'qylogo'
        ,'qyxg_circxzcf'
        ,'qyxg_jyyc'
@@ -153,6 +159,15 @@ def raw_spark_data_flow():
        ,'zhixing'
        ,'zhuanli_zhuanyi'
        ,'zpzzq'
+       ,'qyxx_bgxx'
+       ,'black_list'
+       ,'qyxx_liquidation'
+       ,'qyxx_sharesfrost'
+       ,'qyxg_xzxk'
+       ,'qyxx_sharesimpawn'
+       ,'qyxx_mordetail'
+       ,'domain_name_website_info'
+       ,'overseas_investment'
        ,'qyxx_nb_jbxx'
        ,'qyxx_nb_gzsm'
        ,'qyxx_nb_czxx'
@@ -192,7 +207,6 @@ def raw_spark_data_flow():
         'qyxx_food_prod_cert',
         'qyxx_ck',
         'qyxg_yuqing_main_hj',
-        'domain_name_website_info',
         'qyxx_zhongdeng',
         'zuzhijigoudm',
         'qyxg_zzjgdm'
@@ -213,12 +227,133 @@ def raw_spark_data_flow():
     return table_list, filter_list, table_dict
 
 
-def tid_spark_data_flow():
+def tmp_spark_data_flow(TABLE_DICT):
+    '''
+    STEP 1. 将某些没有xgxx_id，或者某些特殊的“事件”格式化成xgxx_relation的表结构
+    '''
+    get_xgxx_id_udf = fun.udf(get_xgxx_id, tp.StringType())
+    
+    def get_additional_xgxx_df(version, table_name, columns):
+        raw_df = spark.sql(
+            """
+            SELECT
+            '' id,
+            '{table_name}' bbd_table,
+            0 id_type,
+            dt,
+            {event_time} event_time,
+            {col}
+            FROM
+            ods.{table_name}
+            WHERE
+            dt='{version}'
+            """.format(version=version, 
+                       table_name=table_name, 
+                       event_time=TABLE_DICT.get(table_name, ''),
+                       col=','.join(
+                           map(lambda s: "cast({0} as string) {0}".format(s), 
+                               columns))
+                      )
+        ).fillna(
+            ''
+        )
+        
+        tid_df = raw_df.select(
+            'id',
+            'bbd_qyxx_id',
+            get_xgxx_id_udf(*columns).alias('bbd_xgxx_id'),
+            'bbd_table',
+            'id_type',
+            fun.current_timestamp().alias('create_time'),
+            'dt',
+            'event_time'
+        )
+        
+        return tid_df
+    
+    
+    
+    # qyxx_bgxx
+    qyxx_bgxx_columns = ['bbd_qyxx_id', 'change_date', 'change_items', 
+                         'content_before_change', 'content_after_change']
+    tmp_xgxx_relation_df_1 = get_additional_xgxx_df(XGXX_RELATION, 'qyxx_bgxx', 
+                                                    qyxx_bgxx_columns)
+    
+    # qyxx_liquidation
+    qyxx_liquidation_columns = ['bbd_qyxx_id', 'company_name', 'ligentity', 
+                                'ligprincipal', 'liqmen', 'ligst', 
+                                'ligenddate', 'debttranee', 'claimtranee']
+    tmp_xgxx_relation_df_2 = get_additional_xgxx_df(XGXX_RELATION, 
+                                                    'qyxx_liquidation', 
+                                                    qyxx_liquidation_columns)
+    
+    # qyxx_sharesfrost
+    qyxx_sharesfrost_columns = ['bbd_qyxx_id', 'company_name', 'frodocno', 
+                                'froauth', 'frofrom', 'froto', 'froam', 
+                                'thawauth', 'thawdocno', 'thawdate']
+    tmp_xgxx_relation_df_3 = get_additional_xgxx_df(XGXX_RELATION, 
+                                                    'qyxx_sharesfrost', 
+                                                    qyxx_sharesfrost_columns)
+    
+    # qyxx_sharesimpawn
+    qyxx_sharesimpawn_columns = ['bbd_qyxx_id', 'company_name' , 'imporg', 
+                                 'imporgtype', 'impam', 'imponrecdate', 
+                                 'impexaeep', 'impsandate', 'impto', 
+                                 'morregcno', 'imporg_idno', 'pledgee',
+                                 'pledgee_idno', 'impstate', 'impsituation']
+    tmp_xgxx_relation_df_4 = get_additional_xgxx_df(XGXX_RELATION, 
+                                                    'qyxx_sharesimpawn', 
+                                                    qyxx_sharesimpawn_columns)
+    
+    # qyxx_mordetail
+    qyxx_mordetail_columns = ['bbd_qyxx_id', 'company_name', 'morreg_id', 
+                              'mortgagor', 'more', 'regorg', 'regidate', 
+                              'mortype', 'morregcno', 'appregrea', 
+                              'priclaseckind', 'priclasecam', 'pefperform', 
+                              'pefperto', 'candate', 'guaname', 'guadetali']
+    tmp_xgxx_relation_df_5 = get_additional_xgxx_df(XGXX_RELATION, 
+                                                    'qyxx_mordetail', 
+                                                    qyxx_mordetail_columns)
+    
+    # black_list
+    # 由于具有单独的属性，因此独立计算
+  
+    # 中间数据落地
+    
+    tmp_xgxx_relation_df = tmp_xgxx_relation_df_1.union(
+        tmp_xgxx_relation_df_2
+    ).union(
+        tmp_xgxx_relation_df_3
+    ).union(
+        tmp_xgxx_relation_df_4
+    ).union(
+        tmp_xgxx_relation_df_5
+    ).dropDuplicates(
+        ['bbd_xgxx_id', 'bbd_table']
+    )
+    
+    os.system(
+        '''
+        hadoop fs -rmr {path}/tmp_xgxx_relation_df/{version}
+        '''.format(path=TMP_PATH, 
+                   version=RELATION_VERSION)
+    )
+    
+    tmp_xgxx_relation_df.coalesce(
+        300
+    ).write.parquet(
+        '''
+        {path}/tmp_xgxx_relation_df/{version}
+        '''.format(path=TMP_PATH, 
+                   version=RELATION_VERSION)
+    )
+
+
+def tid_spark_data_flow(table_list, filter_list, table_dict):
     '''
     STEP 2. 构建具体事件的df，并将其合并，获取event_time
     '''
     get_standard_date_udf = fun.udf(get_standard_date, tp.StringType())
-    table_list, filter_list, table_dict = raw_spark_data_flow()    
     
     def get_df(table_name, version):
         '''根据某表是否有事件时间，选择不同的读取方式'''
@@ -294,7 +429,7 @@ def tid_spark_data_flow():
         '''
         hadoop fs -rmr {path}/raw_event_df/{version}
         '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+                   version=RELATION_VERSION)
     )
     raw_event_df.coalesce(
         500
@@ -302,7 +437,7 @@ def tid_spark_data_flow():
         '''
         hadoop fs -rmr {path}/raw_event_df/{version}
         '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+                   version=RELATION_VERSION)
     )
 
 
@@ -314,36 +449,57 @@ def prd_spark_data_flow():
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
     
+    # 相关信息
     xgxx_relation_df = spark.read.parquet(
         '''
         {path}/xgxx_relation_df/{version}
         '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+                   version=RELATION_VERSION)
     )    
 
+    # 事件时间
     raw_event_df = spark.read.parquet(
         '''
         hadoop fs -rmr {path}/raw_event_df/{version}
         '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+                   version=RELATION_VERSION)
     )    
-    
-    tid_xgxx_relation_df = xgxx_relation_df.join(
-        raw_event_df,
-        ['bbd_xgxx_id', 'bbd_table'],
-        'inner'
-    ).withColumn(
-        'event_timestamp', get_timestamp_udf('event_time')
+        
+    # 额外的相关信息
+    tmp_xgxx_relation_df = spark.read.parquet(
+        '''
+        {path}/tmp_xgxx_relation_df/{version}
+        '''.format(path=TMP_PATH, 
+                   version=RELATION_VERSION)
     )
     
+    # 合并
     os.system(
         '''
         hadoop fs -rmr {path}/tid_xgxx_relation_df/{version}
         '''.format(path=TMP_PATH, 
-                   version=XGXX_RELATION)
+                   version=RELATION_VERSION)
     )
+        
+    tid_xgxx_relation_df = xgxx_relation_df.join(
+        raw_event_df,
+        ['bbd_xgxx_id', 'bbd_table']
+    ).select(
+        xgxx_relation_df['id'],
+        xgxx_relation_df.bbd_qyxx_id,
+        xgxx_relation_df.bbd_xgxx_id,
+        xgxx_relation_df.bbd_table,
+        xgxx_relation_df.id_type,
+        xgxx_relation_df.create_time,
+        xgxx_relation_df.dt,
+        raw_event_df.event_time
+    ).cache()
     
-    tid_xgxx_relation_df.where(
+    tid_xgxx_relation_df.union(
+        tmp_xgxx_relation_df
+    ).withColumn(
+        'event_timestamp', get_timestamp_udf('event_time')
+    ).where(
         filter_comma_udf('bbd_xgxx_id')
     ).where(
         filter_chinaese_udf('bbd_xgxx_id')
@@ -357,8 +513,118 @@ def prd_spark_data_flow():
         100
     ).write.parquet(
         "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
-                                                       version=XGXX_RELATION)
+                                                       version=RELATION_VERSION)
     )
+
+def prd_black_spark_data_flow():
+    filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
+    filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
+    get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
+    get_Event_udf = fun.udf(partial(get_type, 'Entity', 'Event'), 
+                            tp.StringType())    
+    get_event_relation_udf = fun.udf(
+        partial(lambda r: r, 'INVOLVE'), tp.StringType())
+    
+    # black_list
+    def get_black_list_df(version):
+        raw_df = spark.sql(
+            """
+            SELECT
+            '' id,
+            bbd_qyxx_id,
+            bbd_xgxx_id,
+            'black_list' bbd_table,
+            0 id_type,
+            dt,
+            CAST(create_time AS STRING) event_time,
+            property black_type
+            FROM
+            ods.black_list
+            WHERE
+            dt='{version}'
+            """.format(version=version)
+        )
+        
+        tid_df = raw_df.select(
+            'id',
+            'bbd_qyxx_id',
+            'bbd_xgxx_id',
+            'bbd_table',
+            'id_type',
+            fun.current_timestamp().alias('create_time'),
+            'dt',
+            'event_time',
+            'black_type'
+        )
+        
+        return tid_df
+    
+    
+    raw_black_df = get_black_list_df(XGXX_RELATION)
+    
+    tid_black_df = raw_black_df.withColumn(
+        'event_timestamp', get_timestamp_udf('event_time')
+    ).where(
+        filter_comma_udf('bbd_xgxx_id')
+    ).where(
+        filter_chinaese_udf('bbd_xgxx_id')
+    ).where(
+        filter_comma_udf('bbd_qyxx_id')
+    ).where(
+        filter_chinaese_udf('bbd_qyxx_id')
+    ).dropDuplicates(
+        ['bbd_xgxx_id', 'bbd_qyxx_id']
+    ).cache()
+    
+    prd_black_event_nodes_df = tid_black_df.select(
+        tid_black_df.bbd_xgxx_id.alias(
+            'bbd_event_id:ID'
+        ),
+        tid_black_df.event_timestamp.alias(
+            'event_time:long'
+        ),
+        tid_black_df.black_type.alias(
+            'black_type:string'
+        ),
+        fun.unix_timestamp(
+        ).alias(
+            'create_time:long'
+        ),
+        fun.unix_timestamp(
+        ).alias(
+            'update_time:long'
+        ),
+        get_Event_udf(
+            'bbd_table'
+        ).alias(
+            ':LABEL'
+        )
+    ).where(
+        filter_chinaese_udf('bbd_event_id:ID')
+    ).where(
+        filter_comma_udf('bbd_event_id:ID')
+    ).dropDuplicates(
+        ['bbd_event_id:ID']
+    )
+    
+    prd_black_event_edge_df = tid_black_df.select(
+        tid_black_df.bbd_qyxx_id.alias(
+            ':START_ID'
+        ),    
+        fun.unix_timestamp(
+        ).alias(
+            'create_time:long'
+        ),
+        'id_type',
+        tid_black_df.bbd_xgxx_id.alias(
+            ':END_ID'
+        ),
+        get_event_relation_udf(
+             'bbd_table'
+        ).alias(':TYPE')
+    )
+    
+    return prd_black_event_nodes_df, prd_black_event_edge_df
 
 def prd_spark_graph_data_flow():
     '''
@@ -371,11 +637,11 @@ def prd_spark_graph_data_flow():
         tp.StringType()
     )    
     get_event_relation_udf = fun.udf(
-        partial(lambda r: r, 'INVOLVE'), tp.StringType())    
+        partial(lambda r: r, 'INVOLVE'), tp.StringType())
     
     tid_xgxx_relation_df = spark.read.parquet(
         "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
-                                                       version=XGXX_RELATION))
+                                                       version=RELATION_VERSION))
     
     # 事件节点
     prd_event_nodes_df = tid_xgxx_relation_df.select(
@@ -454,11 +720,36 @@ def get_spark_session():
 def run():
     '''
     前三步在准备数据，事件节点的中间数据很重要，在后面也会用到
+    由于balck_list事件比较特殊，因此需要单独计算
     '''
-    raw_spark_data_flow()
-    tid_spark_data_flow()
+    TABLE_LIST, FILTER_LIST, TABLE_DICT = raw_spark_data_flow()
+    tmp_spark_data_flow(TABLE_DICT)
+    tid_spark_data_flow(TABLE_LIST, FILTER_LIST, TABLE_DICT)
     prd_spark_data_flow()
     prd_event_nodes_df, prd_event_edge_df = prd_spark_graph_data_flow()    
+    prd_black_event_nodes_df, prd_black_event_edge_df = prd_black_spark_data_flow()
+    
+    os.system(
+        '''
+        hadoop fs -rmr {path}/{version}/event_node_black_list
+        '''.format(
+            path=OUT_PATH,
+            version=RELATION_VERSION))
+    prd_black_event_nodes_df.coalesce(30).write.csv(
+        '{path}/{version}/event_node_black_list'.format(
+            path=OUT_PATH,
+            version=RELATION_VERSION))
+    
+    os.system(
+        '''
+        hadoop fs -rmr {path}/{version}/event_edge_black_list
+        '''.format(
+            path=OUT_PATH,
+            version=RELATION_VERSION))
+    prd_black_event_edge_df.coalesce(30).write.csv(
+        '{path}/{version}/event_edge_black_list'.format(
+            path=OUT_PATH,
+            version=RELATION_VERSION))
 
     os.system(
         '''
@@ -466,7 +757,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_event_nodes_df.write.csv(
+    prd_event_nodes_df.coalesce(30).write.csv(
         '{path}/{version}/event_node'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))    
@@ -477,7 +768,7 @@ def run():
         '''.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    prd_event_edge_df.write.csv(
+    prd_event_edge_df.coalesce(30).write.csv(
         '{path}/{version}/event_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
@@ -485,11 +776,13 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170924'
-    XGXX_RELATION = '20170927'
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
     
-    TMP_PATH = '/user/antifraud/graph_relation_construction/'
-    OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    FILE_NAME = 'raw_graph_event_col_20171024.data'
+    IN_PATH = '/user/wanxiang/inputdata'
+    TMP_PATH = '/user/wanxiang/tmpdata'
+    OUT_PATH = '/user/wanxiang/step_one'
 
     #sparkSession
     spark = get_spark_session()

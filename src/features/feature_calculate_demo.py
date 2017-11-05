@@ -5,25 +5,25 @@ import networkx as nx
 import json
 
 
-def get_graph_data_2(driver, name):
+def get_graph_data_2(driver, bbd_qyxx_id):
     with driver.session(max_retry_time=3) as session:
         with session.begin_transaction() as tx:
             nodes = tx.run(
                 '''
-                match p=(a:Company)-[:IS|OF|VIRTUAL|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) where a.name={name} 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:IS|OF|VIRTUAL|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
                 with nodes(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
                 ''',
-                name=name)
+                bbd_qyxx_id=bbd_qyxx_id)
             edges = tx.run(
                 '''
-                match p=(a:Company)-[:IS|OF|VIRTUAL|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) where a.name={name} 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:IS|OF|VIRTUAL|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
                 with relationships(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
                 ''',
-                name=name)
+                bbd_qyxx_id=bbd_qyxx_id)
     return nodes, edges
     
     
@@ -82,18 +82,18 @@ def get_graph_structure(node_data, edge_data, out_file):
 if __name__ == '__main__':
     #在不考虑网络网络的情况下，创建连接的时间在0.7s左右    
     
-    uri = 'bolt://10.28.52.151:7687'
-    my_driver = GraphDatabase.driver(uri, auth=("neo4j", "123456"))
-    name = u'张家口市华工建设有限公司'
+    uri = 'bolt://10.28.102.32:7687'
+    my_driver = GraphDatabase.driver(uri, auth=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB"))
+    bbd_qyxx_id = '2eb36cee3b8c4e02a823e3641203f54e'
     
     # 生成图，同时返回节点与边的列表
-    nodes, edges = get_graph_data_2(my_driver, name)
+    nodes, edges = get_graph_data_2(my_driver, bbd_qyxx_id)
     dig, g, node_data, edge_data = format_graph_data(nodes, edges)
 
 
     # 计算距离
     for node, attr in dig.nodes(data=True):
-        if attr.get('name', '') == name:
+        if attr.get('bbd_qyxx_id', '') == bbd_qyxx_id:
             tar_id = node
     distance_dict = nx.shortest_path_length(g, source=tar_id)
     

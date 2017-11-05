@@ -5,9 +5,10 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-industry_node_and_edge.py {version}
+industry_node_and_edge.py {xgxx_relation} {relation_version}
 '''
 
+import sys
 import os
 import re
 from functools import partial
@@ -152,7 +153,7 @@ def run():
         hadoop fs -rmr {path}/{version}/industry_node
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_industry_node_df.write.csv(
+    prd_industry_node_df.coalesce(30).write.csv(
         '{path}/{version}/industry_node'.format(path=OUT_PATH,
                                                 version=RELATION_VERSION))
 
@@ -161,17 +162,17 @@ def run():
         hadoop fs -rmr {path}/{version}/industry_edge
         '''.format(path=OUT_PATH,
                    version=RELATION_VERSION))
-    prd_industry_edge_df.write.csv(
+    prd_industry_edge_df.coalesce(30).write.csv(
         '{path}/{version}/industry_edge'.format(path=OUT_PATH,
                                                 version=RELATION_VERSION))
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = '20170924'
-    XGXX_RELATION = '20170927'
-    FILE_NAME = 'company_county_mapping_20170524.data'
-    TMP_PATH = '/user/antifraud/graph_relation_construction'
-    OUT_PATH = '/user/antifraud/source/tmp_test/tmp_file'
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
+    IN_PATH = '/user/wanxiang/inputdata'
+    TMP_PATH = '/user/wanxiang/tmpdata'
+    OUT_PATH = '/user/wanxiang/step_one'
 
     #sparkSession
     spark = get_spark_session()
