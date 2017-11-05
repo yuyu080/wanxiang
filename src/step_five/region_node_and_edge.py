@@ -274,9 +274,9 @@ if __name__ == '__main__':
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     FILE_NAME = 'company_county_mapping_20170524.data'
-    IN_PATH = '/user/wanxiang/inputdata'
-    TMP_PATH = '/user/wanxiang/tmpdata'
-    OUT_PATH = '/user/wanxiang/step_one'
+    IN_PATH = '/user/wanxiang/inputdata/'
+    TMP_PATH = '/user/wanxiang/tmpdata/'
+    OUT_PATH = '/user/wanxiang/step_five/'
     
     #sparkSession
     spark = get_spark_session()    

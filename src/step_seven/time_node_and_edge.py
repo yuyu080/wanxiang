@@ -275,8 +275,8 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
-    TMP_PATH = '/user/wanxiang/tmpdata'
-    OUT_PATH = '/user/wanxiang/step_one'
+    TMP_PATH = '/user/wanxiang/tmpdata/'
+    OUT_PATH = '/user/wanxiang/step_seven/'
     
     #sparkSession
     spark = get_spark_session()

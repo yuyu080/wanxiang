@@ -333,19 +333,18 @@ def tmp_spark_data_flow(TABLE_DICT):
     )
     
     os.system(
-        '''
-        hadoop fs -rmr {path}/tmp_xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
-    )
+        ("hadoop fs -rmr " 
+        "{path}/"
+        "tmp_xgxx_relation_df/{version}").format(path=TMP_PATH, 
+                                                 version=RELATION_VERSION))
     
     tmp_xgxx_relation_df.coalesce(
         300
     ).write.parquet(
-        '''
-        {path}/tmp_xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        ("{path}/"
+         "tmp_xgxx_relation_df/{version}"
+        ).format(path=TMP_PATH, 
+                 version=RELATION_VERSION)
     )
 
 
@@ -426,20 +425,20 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
     )
 
     os.system(
-        '''
-        hadoop fs -rmr {path}/raw_event_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
-    )
+        ("hadoop fs -rmr " 
+        "{path}/"
+        "raw_event_df/{version}").format(path=TMP_PATH, 
+                                         version=RELATION_VERSION))
+    
     raw_event_df.coalesce(
-        500
+        300
     ).write.parquet(
-        '''
-        hadoop fs -rmr {path}/raw_event_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        ("{path}/"
+         "raw_event_df/{version}"
+        ).format(path=TMP_PATH, 
+                 version=RELATION_VERSION)
     )
-
+        
 
 def prd_spark_data_flow():
     '''
@@ -451,35 +450,34 @@ def prd_spark_data_flow():
     
     # 相关信息
     xgxx_relation_df = spark.read.parquet(
-        '''
-        {path}/xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        ('{path}/'
+         'xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
     )    
 
     # 事件时间
     raw_event_df = spark.read.parquet(
-        '''
-        hadoop fs -rmr {path}/raw_event_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        ('{path}/'
+         'raw_event_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
     )    
         
     # 额外的相关信息
     tmp_xgxx_relation_df = spark.read.parquet(
-        '''
-        {path}/tmp_xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
+        ('{path}/'
+         'tmp_xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
     )
     
     # 合并
     os.system(
-        '''
-        hadoop fs -rmr {path}/tid_xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
-    )
+        ("hadoop fs -rmr " 
+        "{path}/"
+        "tid_xgxx_relation_df/{version}").format(path=TMP_PATH, 
+                                         version=RELATION_VERSION))
         
     tid_xgxx_relation_df = xgxx_relation_df.join(
         raw_event_df,
@@ -512,8 +510,10 @@ def prd_spark_data_flow():
     ).coalesce(
         100
     ).write.parquet(
-        "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
-                                                       version=RELATION_VERSION)
+        ('{path}/'
+         'tid_xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
     )
 
 def prd_black_spark_data_flow():
@@ -524,8 +524,10 @@ def prd_black_spark_data_flow():
                             tp.StringType())    
     get_event_relation_udf = fun.udf(
         partial(lambda r: r, 'INVOLVE'), tp.StringType())
+    get_blakc_id_udf = fun.udf(lambda i: i+'_black', tp.StringType())
     
     # black_list
+    # 与company_node.py有冗余
     def get_black_list_df(version):
         raw_df = spark.sql(
             """
@@ -548,7 +550,7 @@ def prd_black_spark_data_flow():
         tid_df = raw_df.select(
             'id',
             'bbd_qyxx_id',
-            'bbd_xgxx_id',
+            get_blakc_id_udf('bbd_qyxx_id').alias('bbd_qyxx_id'),
             'bbd_table',
             'id_type',
             fun.current_timestamp().alias('create_time'),
@@ -558,7 +560,6 @@ def prd_black_spark_data_flow():
         )
         
         return tid_df
-    
     
     raw_black_df = get_black_list_df(XGXX_RELATION)
     
@@ -575,6 +576,22 @@ def prd_black_spark_data_flow():
     ).dropDuplicates(
         ['bbd_xgxx_id', 'bbd_qyxx_id']
     ).cache()
+    
+    # 数据落地
+    os.system(
+        '''
+        hadoop fs -rmr {path}/tid_black_df/{version}
+        '''.format(path=TMP_PATH, 
+                   version=RELATION_VERSION)
+    )    
+    tid_black_df.coalesce(
+        500
+    ).write.parquet(
+        ("{path}/"
+         "tid_black_df/"
+         "{version}").format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
+    )
     
     prd_black_event_nodes_df = tid_black_df.select(
         tid_black_df.bbd_xgxx_id.alias(
@@ -620,7 +637,6 @@ def prd_black_spark_data_flow():
             ':END_ID'
         ),
         get_event_relation_udf(
-             'bbd_table'
         ).alias(':TYPE')
     )
     
@@ -640,8 +656,10 @@ def prd_spark_graph_data_flow():
         partial(lambda r: r, 'INVOLVE'), tp.StringType())
     
     tid_xgxx_relation_df = spark.read.parquet(
-        "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
-                                                       version=RELATION_VERSION))
+        ('{path}/'
+         'tid_xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION))
     
     # 事件节点
     prd_event_nodes_df = tid_xgxx_relation_df.select(
@@ -780,9 +798,9 @@ if __name__ == '__main__':
     RELATION_VERSION = sys.argv[2]
     
     FILE_NAME = 'raw_graph_event_col_20171024.data'
-    IN_PATH = '/user/wanxiang/inputdata'
-    TMP_PATH = '/user/wanxiang/tmpdata'
-    OUT_PATH = '/user/wanxiang/step_one'
+    IN_PATH = '/user/wanxiang/inputdata/'
+    TMP_PATH = '/user/wanxiang/tmpdata/'
+    OUT_PATH = '/user/wanxiang/step_two/'
 
     #sparkSession
     spark = get_spark_session()

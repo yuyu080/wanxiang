@@ -12,6 +12,8 @@ import sys
 import os
 import re
 
+import datetime
+import time
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
 from pyspark.sql import functions as fun, types as tp
@@ -38,6 +40,18 @@ def get_label(x):
     except:
         return ''
         
+def get_timestamp(date):
+    '''将日期转换成linux时间戳'''
+    try:
+        date_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
+        return long(time.mktime(date_obj.timetuple()))
+    except:
+        try:
+            date_obj = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            return long(time.mktime(date_obj.timetuple()))
+        except:
+            return 0
+        
 def spark_data_flow():
     '''
     STEP 1：数据准备
@@ -45,11 +59,13 @@ def spark_data_flow():
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_label_udf = fun.udf(get_label , tp.StringType())
+    get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
+    get_blakc_id_udf = fun.udf(lambda i: i+'_black', tp.StringType())
     
     # 自然人节点
     person_df = spark.read.csv(
         '{path}/{version}/person_node'.format(
-        path=OUT_PATH,
+        path=IN_PATH_TWO,
         version=RELATION_VERSION))
     
     # basic
@@ -139,7 +155,19 @@ def spark_data_flow():
         '{path}/tid_xgxx_relation_df/{version}'.format(path=TMP_PATH,
                                                        version=RELATION_VERSION)
     )
-    all_xgxx_info_df = tid_xgxx_relation_df.groupBy(
+        
+    # black_list
+    # event_node_and_edge.py有冗余
+    tid_black_df = spark.read.parquet(
+        ("{path}/"
+         "tid_black_df/"
+         "{version}").format(path=TMP_PATH, 
+                             version=RELATION_VERSION)
+    )
+        
+    all_xgxx_info_df = tid_xgxx_relation_df.union(
+        tid_black_df
+    ).groupBy(
         ['bbd_qyxx_id', 'bbd_table']
     ).agg(
         {'bbd_xgxx_id': 'count'}
@@ -416,9 +444,10 @@ if __name__ == '__main__':
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     FILE_NAME = 'company_county_mapping_20170524.data'
-    IN_PATH = '/user/wanxiang/inputdata'
-    TMP_PATH = '/user/wanxiang/tmpdata'
-    OUT_PATH = '/user/wanxiang/step_one'
+    IN_PATH = '/user/wanxiang/inputdata/'
+    IN_PATH_TWO = '/user/wanxiang/step_three/'
+    TMP_PATH = '/user/wanxiang/tmpdata/'
+    OUT_PATH = '/user/wanxiang/step_four/'
     
     basic_version = XGXX_RELATION
     black_version = XGXX_RELATION

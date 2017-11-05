@@ -211,6 +211,7 @@ def get_spark_session():
     return spark 
     
 def run():
+    #tmp_spark_data_flow()
     prd_person_df = spark_data_flow()
 
     # 输出
@@ -231,8 +232,8 @@ if __name__ == '__main__':
     
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
-    TMP_PATH = '/user/wanxiang/tmpdata'
-    OUT_PATH = '/user/wanxiang/step_one'
+    TMP_PATH = '/user/wanxiang/tmpdata/'
+    OUT_PATH = '/user/wanxiang/step_three/'
 
     #sparkSession
     spark = get_spark_session()

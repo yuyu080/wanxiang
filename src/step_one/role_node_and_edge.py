@@ -359,7 +359,7 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
-    OUT_PATH = '/user/wanxiang/step_one'
+    OUT_PATH = '/user/wanxiang/step_one/'
 
     #sparkSession
     spark = get_spark_session()

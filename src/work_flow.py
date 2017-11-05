@@ -12,7 +12,7 @@ def execute_some_step(step_name, file_name, xgxx_relation, relation_version):
         --master yarn \
         --deploy-mode client \
         --driver-memory 15g \
-        --queue project.wanxiang \
+        --queue root.default \
         {path}/{file_name} {in_version} {out_version}
         '''.format(path=IN_PATH+step_name, 
                    file_name=file_name,
@@ -81,25 +81,74 @@ def step_seven():
 
 
 def to_local():
-    pass
+    
+    def get_file(step_name, file_name):
+        local_file = LOCAL_DATA_PATH+file_name
+        if not os.path.exists(LOCAL_DATA_PATH):
+            os.makedirs(LOCAL_DATA_PATH)
+        if os.path.exists(local_file):
+            os.remove(local_file)
+            
+        os.system(
+            '''
+            hadoop fs -getmerge \
+            {path}/{step_name}/{version}/{file_name}/* \
+            {local_path}/{version}/{file_name}.data
+            '''.format(
+                path='/user/wanxiang/',
+                step_name=step_name,
+                version=RELATION_VERSION,
+                file_name=file_name,
+                local_path=LOCAL_DATA_PATH
+            )
+        )
+    
+    
+    get_file('step_one', 'role_node')
+    get_file('step_one', 'role_edge')
+    get_file('step_one', 'isinvest_role_node')
+    get_file('step_one', 'isinvest_role_edge')
+    print "step_one sucess !!"
 
-
+    get_file('step_two', 'event_node')
+    get_file('step_two', 'event_edge')
+    get_file('step_two', 'event_node_black_list')
+    get_file('step_two', 'event_edge_black_list')
+    print "step_two sucess !!"
+    
+    get_file('step_three', 'person_node')
+    print "step_three sucess !!"
+    
+    get_file('step_four', 'company_node')
+    print "step_four sucess !!"
+    
+    get_file('step_five', 'region_node')
+    get_file('step_five', 'region_edge')
+    print "step_five sucess !!"
+    
+    get_file('step_six', 'industry_node')
+    get_file('step_six', 'industry_edge')
+    print "step_six sucess !!"
+    
+    get_file('step_seven', 'time_node')
+    get_file('step_seven', 'time_edge')
+    print "step_seven sucess !!"
+    
 def run():
-    step_one()
-#==============================================================================
-#     step_two()
-#     step_three()
-#     step_four()
-#     step_five()
-#     step_six()
-#     step_seven()
-#==============================================================================
-
+#    step_one()
+#    step_two()
+#    step_three()
+#    step_four()
+#    step_five()
+#    step_six()
+#    step_seven()
+#   to_local()
+    
 if __name__ == '__main__':
     
     # 本地项目路径
     IN_PATH = './'
-    
+    LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
     RELATION_VERSION = '20171018'
     XGXX_RELATION = '20171101'
 
