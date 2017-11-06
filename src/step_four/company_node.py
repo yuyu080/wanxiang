@@ -12,8 +12,6 @@ import sys
 import os
 import re
 
-import datetime
-import time
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
 from pyspark.sql import functions as fun, types as tp
@@ -39,18 +37,7 @@ def get_label(x):
         return x.split(';')[2]
     except:
         return ''
-        
-def get_timestamp(date):
-    '''将日期转换成linux时间戳'''
-    try:
-        date_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
-        return long(time.mktime(date_obj.timetuple()))
-    except:
-        try:
-            date_obj = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            return long(time.mktime(date_obj.timetuple()))
-        except:
-            return 0
+    
         
 def spark_data_flow():
     '''
@@ -59,8 +46,7 @@ def spark_data_flow():
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_label_udf = fun.udf(get_label , tp.StringType())
-    get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
-    get_blakc_id_udf = fun.udf(lambda i: i+'_black', tp.StringType())
+
     
     # 自然人节点
     person_df = spark.read.csv(
@@ -156,18 +142,8 @@ def spark_data_flow():
                                                        version=RELATION_VERSION)
     )
         
-    # black_list
-    # event_node_and_edge.py有冗余
-    tid_black_df = spark.read.parquet(
-        ("{path}/"
-         "tid_black_df/"
-         "{version}").format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )
-        
-    all_xgxx_info_df = tid_xgxx_relation_df.union(
-        tid_black_df
-    ).groupBy(
+ 
+    all_xgxx_info_df = tid_xgxx_relation_df.groupBy(
         ['bbd_qyxx_id', 'bbd_table']
     ).agg(
         {'bbd_xgxx_id': 'count'}
@@ -342,12 +318,11 @@ def spark_data_flow():
             get_some_xgxx_info('xgxx_shangbiao'),
             get_some_xgxx_info('shgy_zhongbjg'),
             get_some_xgxx_info('shgy_zhaobjg'),
-            get_some_xgxx_info('qyxx_zhuanli'),
+            get_some_xgxx_info('qyxx_wanfang_zhuanli'),
             get_some_xgxx_info('qyxg_qyqs'),
             get_some_xgxx_info('qyxx_bgxx'),
             get_some_xgxx_info('recruit'),
             get_some_xgxx_info('qyxg_jyyc'),
-            get_some_xgxx_info('black_list'),
             get_some_xgxx_info('sfpm_taobao'),
             get_some_xgxx_info('qyxx_liquidation'),
             get_some_xgxx_info('qyxx_sharesfrost'),
@@ -450,7 +425,6 @@ if __name__ == '__main__':
     OUT_PATH = '/user/wanxiang/step_four/'
     
     basic_version = XGXX_RELATION
-    black_version = XGXX_RELATION
     state_owned_version = XGXX_RELATION
     ktgg_version = XGXX_RELATION
     zgcpwsw_version = XGXX_RELATION

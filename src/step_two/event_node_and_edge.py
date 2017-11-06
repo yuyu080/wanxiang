@@ -141,7 +141,6 @@ def raw_spark_data_flow():
        ,'qyxg_yuqing_main'
        ,'qyxx_finance_xkz'
        ,'qyxx_wanfang_zhuanli'
-       ,'qyxx_zhuanli'
        ,'recruit'
        ,'rjzzq'
        ,'rmfygg'
@@ -160,7 +159,6 @@ def raw_spark_data_flow():
        ,'zhuanli_zhuanyi'
        ,'zpzzq'
        ,'qyxx_bgxx'
-       ,'black_list'
        ,'qyxx_liquidation'
        ,'qyxx_sharesfrost'
        ,'qyxg_xzxk'
@@ -209,7 +207,9 @@ def raw_spark_data_flow():
         'qyxg_yuqing_main_hj',
         'qyxx_zhongdeng',
         'zuzhijigoudm',
-        'qyxg_zzjgdm'
+        'qyxg_zzjgdm',
+        'qyxx_zhuanli',
+        'black_list'
     ]
     
     # 表+时间字段
@@ -516,131 +516,6 @@ def prd_spark_data_flow():
                              version=RELATION_VERSION)
     )
 
-def prd_black_spark_data_flow():
-    filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
-    filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
-    get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
-    get_Event_udf = fun.udf(partial(get_type, 'Entity', 'Event'), 
-                            tp.StringType())    
-    get_event_relation_udf = fun.udf(
-        partial(lambda r: r, 'INVOLVE'), tp.StringType())
-    get_blakc_id_udf = fun.udf(lambda i: i+'_black', tp.StringType())
-    
-    # black_list
-    # 与company_node.py有冗余
-    def get_black_list_df(version):
-        raw_df = spark.sql(
-            """
-            SELECT
-            '' id,
-            bbd_qyxx_id,
-            bbd_xgxx_id,
-            'black_list' bbd_table,
-            0 id_type,
-            dt,
-            CAST(create_time AS STRING) event_time,
-            property black_type
-            FROM
-            ods.black_list
-            WHERE
-            dt='{version}'
-            """.format(version=version)
-        )
-        
-        tid_df = raw_df.select(
-            'id',
-            'bbd_qyxx_id',
-            get_blakc_id_udf('bbd_qyxx_id').alias('bbd_qyxx_id'),
-            'bbd_table',
-            'id_type',
-            fun.current_timestamp().alias('create_time'),
-            'dt',
-            'event_time',
-            'black_type'
-        )
-        
-        return tid_df
-    
-    raw_black_df = get_black_list_df(XGXX_RELATION)
-    
-    tid_black_df = raw_black_df.withColumn(
-        'event_timestamp', get_timestamp_udf('event_time')
-    ).where(
-        filter_comma_udf('bbd_xgxx_id')
-    ).where(
-        filter_chinaese_udf('bbd_xgxx_id')
-    ).where(
-        filter_comma_udf('bbd_qyxx_id')
-    ).where(
-        filter_chinaese_udf('bbd_qyxx_id')
-    ).dropDuplicates(
-        ['bbd_xgxx_id', 'bbd_qyxx_id']
-    ).cache()
-    
-    # 数据落地
-    os.system(
-        '''
-        hadoop fs -rmr {path}/tid_black_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
-    )    
-    tid_black_df.coalesce(
-        500
-    ).write.parquet(
-        ("{path}/"
-         "tid_black_df/"
-         "{version}").format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )
-    
-    prd_black_event_nodes_df = tid_black_df.select(
-        tid_black_df.bbd_xgxx_id.alias(
-            'bbd_event_id:ID'
-        ),
-        tid_black_df.event_timestamp.alias(
-            'event_time:long'
-        ),
-        tid_black_df.black_type.alias(
-            'black_type:string'
-        ),
-        fun.unix_timestamp(
-        ).alias(
-            'create_time:long'
-        ),
-        fun.unix_timestamp(
-        ).alias(
-            'update_time:long'
-        ),
-        get_Event_udf(
-            'bbd_table'
-        ).alias(
-            ':LABEL'
-        )
-    ).where(
-        filter_chinaese_udf('bbd_event_id:ID')
-    ).where(
-        filter_comma_udf('bbd_event_id:ID')
-    ).dropDuplicates(
-        ['bbd_event_id:ID']
-    )
-    
-    prd_black_event_edge_df = tid_black_df.select(
-        tid_black_df.bbd_qyxx_id.alias(
-            ':START_ID'
-        ),    
-        fun.unix_timestamp(
-        ).alias(
-            'create_time:long'
-        ),
-        'id_type',
-        tid_black_df.bbd_xgxx_id.alias(
-            ':END_ID'
-        ),
-        get_event_relation_udf(
-        ).alias(':TYPE')
-    )
-    
-    return prd_black_event_nodes_df, prd_black_event_edge_df
 
 def prd_spark_graph_data_flow():
     '''
@@ -652,8 +527,7 @@ def prd_spark_graph_data_flow():
         partial(get_type, 'Entity', 'Event'), 
         tp.StringType()
     )    
-    get_event_relation_udf = fun.udf(
-        partial(lambda r: r, 'INVOLVE'), tp.StringType())
+    get_event_relation_udf = fun.udf(lambda r: r.upper(), tp.StringType())
     
     tid_xgxx_relation_df = spark.read.parquet(
         ('{path}/'
@@ -704,6 +578,7 @@ def prd_spark_graph_data_flow():
             ':END_ID'
         ),
         get_event_relation_udf(
+            'bbd_table'
         ).alias(':TYPE')
     )
     
@@ -745,30 +620,7 @@ def run():
     tid_spark_data_flow(TABLE_LIST, FILTER_LIST, TABLE_DICT)
     prd_spark_data_flow()
     prd_event_nodes_df, prd_event_edge_df = prd_spark_graph_data_flow()    
-    prd_black_event_nodes_df, prd_black_event_edge_df = prd_black_spark_data_flow()
     
-    os.system(
-        '''
-        hadoop fs -rmr {path}/{version}/event_node_black_list
-        '''.format(
-            path=OUT_PATH,
-            version=RELATION_VERSION))
-    prd_black_event_nodes_df.coalesce(600).write.csv(
-        '{path}/{version}/event_node_black_list'.format(
-            path=OUT_PATH,
-            version=RELATION_VERSION))
-    
-    os.system(
-        '''
-        hadoop fs -rmr {path}/{version}/event_edge_black_list
-        '''.format(
-            path=OUT_PATH,
-            version=RELATION_VERSION))
-    prd_black_event_edge_df.coalesce(600).write.csv(
-        '{path}/{version}/event_edge_black_list'.format(
-            path=OUT_PATH,
-            version=RELATION_VERSION))
-
     os.system(
         '''
         hadoop fs -rmr {path}/{version}/event_node
