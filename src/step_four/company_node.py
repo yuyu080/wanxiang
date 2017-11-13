@@ -81,15 +81,81 @@ def spark_data_flow():
         dt='{version}'  
         '''.format(version=basic_version)
     )
+    
+    # 读取所有可能的公司节点
+    tmp_company_1_df = spark.sql(
+        '''
+        SELECT 
+        source_bbd_id           bbd_qyxx_id,
+        source_name             company_name,
+        '-'                              ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_type,
+        '-' company_gis_lat,
+        '-' company_gis_lon
+        FROM 
+        dw.off_line_relations 
+        WHERE 
+        dt='{version}'  
+        AND
+        source_isperson = 0
+        '''.format(version=RELATION_VERSION)
+    )
+    
+    tmp_company_2_df = spark.sql(
+        '''
+        SELECT 
+        destination_bbd_id           bbd_qyxx_id,
+        destination_name             company_name,
+        '-'                                      ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_type,
+        '-' company_gis_lat,
+        '-' company_gis_lon
+        FROM 
+        dw.off_line_relations 
+        WHERE 
+        dt='{version}'  
+        AND
+        destination_isperson = 0
+        '''.format(version=RELATION_VERSION)
+    )
+    
+    tmp_company_df = tmp_company_1_df.union(
+        tmp_company_2_df
+    ).dropDuplicates(
+        ['bbd_qyxx_id']
+    ).cache()
+
     # 数据清洗, 该中间结果很重要，是后续构造节点的关键,因此需要落地
     os.system(
         '''
         hadoop fs -rmr {path}/prd_basic_df/{version}
         '''.format(path=TMP_PATH, 
                    version=RELATION_VERSION)
-    )    
+    )
 
-    prd_basic_df = raw_basic_df.join(
+    prd_basic_df = raw_basic_df.union(
+        tmp_company_df    
+    ).join(
         person_df,
         person_df['_c0'] == raw_basic_df.bbd_qyxx_id,
         'left_outer'
