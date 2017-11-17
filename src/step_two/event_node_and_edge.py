@@ -73,41 +73,6 @@ def raw_spark_data_flow():
     STEP 0. 创建table_list与col_dict, 明确需要哪些输入表
     ''' 
     
-    # 原始相关信息
-    xgxx_relation_df = spark.sql(
-        '''
-        select * from ods.xgxx_relation where dt='{version}'
-        '''.format(version=XGXX_RELATION)
-    )
-    
-    os.system(
-        '''
-        hadoop fs -rmr {path}/xgxx_relation_df/{version}
-        '''.format(path=TMP_PATH, 
-                   version=RELATION_VERSION)
-    )
-    xgxx_relation_df.coalesce(
-        300
-    ).write.parquet(
-        ('{path}/'
-         'xgxx_relation_df/'
-         '{version}').format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )
-    xgxx_relation_df = spark.read.parquet(
-        ('{path}/'
-         'xgxx_relation_df/'
-         '{version}').format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )
-    
-    
-    table_df = xgxx_relation_df.select(
-        'bbd_table'
-    ).dropDuplicates(
-        ['bbd_table']
-    ).cache()
-    
     # 包含每个表event字段的df
     table_envnt_date_df = spark.read.csv(
         '{path}/{file_name}'.format(path=IN_PATH,
@@ -244,7 +209,7 @@ def tmp_spark_data_flow(TABLE_DICT):
             {event_time} event_time,
             {col}
             FROM
-            ods.{table_name}
+            dw.{table_name}
             WHERE
             dt='{version}'
             """.format(version=version, 
@@ -264,18 +229,18 @@ def tmp_spark_data_flow(TABLE_DICT):
             get_xgxx_id_udf(*columns).alias('bbd_xgxx_id'),
             'bbd_table',
             'id_type',
-            fun.current_timestamp().alias('create_time'),
             'dt',
-            'event_time'
+            'event_time',
+            'company_name'
         )
         
         return tid_df
     
     
-    
     # qyxx_bgxx
-    qyxx_bgxx_columns = ['bbd_qyxx_id', 'change_date', 'change_items', 
-                         'content_before_change', 'content_after_change']
+    qyxx_bgxx_columns = ['bbd_qyxx_id', 'company_name','change_date', 
+                         'change_items', 'content_before_change', 
+                         'content_after_change']
     tmp_xgxx_relation_df_1 = get_additional_xgxx_df(XGXX_RELATION, 'qyxx_bgxx', 
                                                     qyxx_bgxx_columns)
     
@@ -361,11 +326,16 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
                 df = spark.sql(
                     '''
                     SELECT
+                    '' id,
+                    '{table_name}' bbd_table,
+                    id_type,
                     bbd_xgxx_id,
+                    bbd_qyxx_id,
+                    dt,
                     {event_time} event_time,
-                    '{table_name}' bbd_table
+                    '-' company_name
                     FROM
-                    ods.{table_name}
+                    dw.{table_name}
                     WHERE
                     dt='{version}'
                     '''.format(
@@ -378,11 +348,16 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
                 df = spark.sql(
                     '''
                     SELECT
+                    '' id,
+                    '{table_name}' bbd_table,
+                    id_type,
                     bbd_xgxx_id,
+                    bbd_qyxx_id,
+                    dt,
                     '0' event_time,
-                    '{table_name}' bbd_table
+                    '-' company_name
                     FROM
-                    ods.{table_name}
+                    dw.{table_name}
                     WHERE
                     dt='{version}'
                     '''.format(
@@ -416,12 +391,19 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
     # 数据落地
     raw_event_df = union_df(table_list, filter_list, XGXX_RELATION).fillna(
         '0'
+    ).fillna(
+        0
     ).dropDuplicates(
         ['bbd_xgxx_id', 'bbd_table']
     ).select(
+        'id',
+        'bbd_qyxx_id',
         'bbd_xgxx_id',
-        get_standard_date_udf('event_time').alias('event_time'),
         'bbd_table',
+        'id_type',
+        get_standard_date_udf('event_time').alias('event_time'),
+        'dt',
+        'company_name'
     )
 
     os.system(
@@ -447,30 +429,20 @@ def prd_spark_data_flow():
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_timestamp_udf = fun.udf(get_timestamp, tp.LongType())
-    
-    # 相关信息
-    xgxx_relation_df = spark.read.parquet(
-        ('{path}/'
-         'xgxx_relation_df/'
-         '{version}').format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )    
 
-    # 事件时间
+    # 事件时间, 以及相关信息
     raw_event_df = spark.read.parquet(
         ('{path}/'
          'raw_event_df/'
          '{version}').format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )    
+                             version=RELATION_VERSION))
         
     # 额外的相关信息
     tmp_xgxx_relation_df = spark.read.parquet(
         ('{path}/'
          'tmp_xgxx_relation_df/'
          '{version}').format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )
+                             version=RELATION_VERSION))
     
     # 合并
     os.system(
@@ -479,22 +451,26 @@ def prd_spark_data_flow():
         "tid_xgxx_relation_df/{version}").format(path=TMP_PATH, 
                                          version=RELATION_VERSION))
         
-    tid_xgxx_relation_df = xgxx_relation_df.join(
-        raw_event_df,
-        ['bbd_xgxx_id', 'bbd_table']
-    ).select(
-        xgxx_relation_df['id'],
-        xgxx_relation_df.bbd_qyxx_id,
-        xgxx_relation_df.bbd_xgxx_id,
-        xgxx_relation_df.bbd_table,
-        xgxx_relation_df.id_type,
-        xgxx_relation_df.create_time,
-        xgxx_relation_df.dt,
+    tid_xgxx_relation_df = raw_event_df.select(
+        raw_event_df['id'],
+        raw_event_df.bbd_qyxx_id,
+        raw_event_df.bbd_xgxx_id,
+        raw_event_df.bbd_table,
+        raw_event_df.id_type,
+        raw_event_df.dt,
         raw_event_df.event_time
     ).cache()
     
     tid_xgxx_relation_df.union(
-        tmp_xgxx_relation_df
+        tmp_xgxx_relation_df.select(
+            tmp_xgxx_relation_df['id'],
+            tmp_xgxx_relation_df.bbd_qyxx_id,
+            tmp_xgxx_relation_df.bbd_xgxx_id,
+            tmp_xgxx_relation_df.bbd_table,
+            tmp_xgxx_relation_df.id_type,
+            tmp_xgxx_relation_df.dt,
+            tmp_xgxx_relation_df.event_time
+        )
     ).withColumn(
         'event_timestamp', get_timestamp_udf('event_time')
     ).where(
@@ -513,8 +489,7 @@ def prd_spark_data_flow():
         ('{path}/'
          'tid_xgxx_relation_df/'
          '{version}').format(path=TMP_PATH, 
-                             version=RELATION_VERSION)
-    )
+                             version=RELATION_VERSION))
 
 
 def prd_spark_graph_data_flow():
@@ -589,8 +564,8 @@ def get_spark_session():
     conf = SparkConf()
     conf.setMaster('yarn-client')
     conf.set("spark.yarn.am.cores", 15)
-    conf.set("spark.executor.memory", "25g")
-    conf.set("spark.executor.instances", 40)
+    conf.set("spark.executor.memory", "45g")
+    conf.set("spark.executor.instances", 30)
     conf.set("spark.executor.cores", 5)
     conf.set("spark.python.worker.memory", "2g")
     conf.set("spark.default.parallelism", 1000)
@@ -630,7 +605,7 @@ def run():
     prd_event_nodes_df.coalesce(600).write.csv(
         '{path}/{version}/event_node'.format(
             path=OUT_PATH,
-            version=RELATION_VERSION))    
+            version=RELATION_VERSION))
 
     os.system(
         '''
