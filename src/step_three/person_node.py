@@ -66,13 +66,13 @@ def tmp_spark_data_flow():
     
     prd_role_edge_df = spark.read.csv(
         '{path}/{version}/role_edge'.format(
-            path=OUT_PATH,
+            path=IN_PATH,
             version=RELATION_VERSION),
         schema=role_edge_struct)
     
     prd_role_node_df = spark.read.csv(
         '{path}/{version}/role_node'.format(
-            path=OUT_PATH,
+            path=IN_PATH,
             version=RELATION_VERSION),
         schema=role_node_struct)
     
@@ -98,7 +98,7 @@ def tmp_spark_data_flow():
     )
 
     os.system(
-        "{path}/tmp_role_df/{version}".format(path=TMP_PATH, 
+        "hadoop fs -rmr {path}/tmp_role_df/{version}".format(path=TMP_PATH, 
                                               version=RELATION_VERSION))
     tmp_role_df.write.parquet(
         "{path}/tmp_role_df/{version}".format(path=TMP_PATH, 
@@ -211,7 +211,7 @@ def get_spark_session():
     return spark 
     
 def run():
-    #tmp_spark_data_flow()
+    tmp_spark_data_flow()
     prd_person_df = spark_data_flow()
 
     # 输出
@@ -233,6 +233,7 @@ if __name__ == '__main__':
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     TMP_PATH = '/user/wanxiang/tmpdata/'
+    IN_PATH = '/user/wanxiang/step_one/'
     OUT_PATH = '/user/wanxiang/step_three/'
 
     #sparkSession
