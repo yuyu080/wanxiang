@@ -70,7 +70,7 @@ def spark_data_flow():
         ('R', u'文化、体育和娱乐业'),
         ('S', u'公共管理、社会保障和社会组织'),
         ('T', u'国际组织'),
-        ('Z', u'其他'),
+        ('Z', u'其他')
     ]
     
     raw_industry_df = spark.sparkContext.parallelize(
