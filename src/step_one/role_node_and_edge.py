@@ -149,7 +149,7 @@ def spark_data_flow():
         'INVEST' bc_relation,
         invest_ratio ratio
         FROM
-        ods.qyxx_gdxx
+        dw.qyxx_gdxx
         WHERE
         dt='{version}'
         '''.format(version=XGXX_RELATION)
@@ -171,11 +171,13 @@ def spark_data_flow():
         SELECT
         bbd_branch_id b,
         bbd_qyxx_id c,
+        name b_name,
+        company_name c_name,
         'BRANCH' bc_relation,
         '分支机构' role_name,
         '-' ratio
         FROM
-        ods.qyxx_fzjg_merge
+        dw.qyxx_fzjg_merge
         WHERE
         dt='{version}'
         '''.format(version=XGXX_RELATION)
@@ -195,15 +197,29 @@ def spark_data_flow():
         filter_chinaese_udf('c')
     ).select(
         'b',
+        'b_name',
         get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
         'c',
+        'c_name',
         'bc_relation',
         'role_name',
         'ratio',
     )
     
+    # 中间结果落地，为了将fzjg中的企业加入company_node中
+    os.system(
+        ("hadoop fs -rmr " 
+         "{path}/"
+         "tid_qyxx_fzjg_merge/{version}").format(path=TMP_PATH, 
+                                                 version=RELATION_VERSION))
+    tid_qyxx_fzjg_merge.write.parquet(
+        ('{path}/'
+         'tid_qyxx_fzjg_merge/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION))
+    
     prd_qyxx_fzjg_merge = tid_qyxx_fzjg_merge.select(
-        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        'bbd_role_id:ID',
         'role_name',
         'ratio',
         fun.unix_timestamp().alias('create_time:long'),
@@ -359,6 +375,7 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
+    TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_one/'
 
     #sparkSession
