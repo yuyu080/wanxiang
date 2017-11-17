@@ -540,7 +540,10 @@ def prd_spark_graph_data_flow():
     )
 
     # 事件关系
-    prd_event_edge_df = tid_xgxx_relation_df.select(
+    # 由于有很多无效的qyxx_id,因此这里可以先将这些关系剔除，后期通过streaming更新
+    prd_event_edge_df = tid_xgxx_relation_df.where(
+        tid_xgxx_relation_df.bbd_qyxx_id != '0'
+    ).select(
         tid_xgxx_relation_df.bbd_qyxx_id.alias(
             ':START_ID'
         ),    
