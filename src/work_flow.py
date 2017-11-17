@@ -110,19 +110,21 @@ def to_local():
 #     get_file('step_one', 'isinvest_role_node')
 #     get_file('step_one', 'isinvest_role_edge')
 #     print "step_one sucess !!"
-# 
 #==============================================================================
-    get_file('step_two', 'event_node')
+
+    #get_file('step_two', 'event_node')
     get_file('step_two', 'event_edge')
     print "step_two sucess !!"
     
 #==============================================================================
 #     get_file('step_three', 'person_node')
 #     print "step_three sucess !!"
-#     
 #==============================================================================
-    get_file('step_four', 'company_node')
-    print "step_four sucess !!"
+    
+#==============================================================================
+#     get_file('step_four', 'company_node')
+#     print "step_four sucess !!"
+#==============================================================================
     
 #==============================================================================
 #     get_file('step_five', 'region_node')
@@ -142,7 +144,7 @@ def run():
 #    step_one()
     step_two()
 #    step_three()
-    step_four()
+#    step_four()
 #    step_five()
 #    step_six()
 #    step_seven()
@@ -154,6 +156,6 @@ if __name__ == '__main__':
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
     RELATION_VERSION = '20171018'
-    XGXX_RELATION = '20171101'
+    XGXX_RELATION = '20171018'
 
     run()
