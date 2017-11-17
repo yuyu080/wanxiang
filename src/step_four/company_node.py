@@ -109,7 +109,7 @@ def spark_data_flow():
         company_province,
         company_county,
         company_industry,
-        regexp_replace(regexp_replace(company_type,',',''),'\"','') company_type,
+        regexp_replace(regexp_replace(company_companytype,',',''),'\"','') company_companytype,
         company_gis_lat,
         company_gis_lon
         FROM
@@ -136,7 +136,7 @@ def spark_data_flow():
         '-' company_province,
         '-' company_county,
         '-' company_industry,
-        '-' company_type,
+        '-' company_companytype,
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
@@ -164,7 +164,7 @@ def spark_data_flow():
         '-' company_province,
         '-' company_county,
         '-' company_industry,
-        '-' company_type,
+        '-' company_companytype,
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
@@ -193,7 +193,7 @@ def spark_data_flow():
         '-' company_province,
         '-' company_county,
         '-' company_industry,
-        '-' company_type,
+        '-' company_companytype,
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
@@ -217,7 +217,7 @@ def spark_data_flow():
         '-' company_province,
         '-' company_county,
         '-' company_industry,
-        '-' company_type,
+        '-' company_companytype,
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
@@ -230,7 +230,7 @@ def spark_data_flow():
         SELECT 
         bbd_qyxx_id,
         company_name,
-        '-'         ipo_company,
+        '-' ipo_company,
         '0' regcap_amount,
         '0' realcap_amount,
         '-' regcap_currency,
@@ -241,7 +241,7 @@ def spark_data_flow():
         '-' company_province,
         '-' company_county,
         '-' company_industry,
-        '-' company_type,
+        '-' company_companytype,
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
@@ -265,7 +265,7 @@ def spark_data_flow():
         '-' company_province,
         '-' company_county,
         '-' company_industry,
-        '-' company_type,
+        '-' company_companytype,
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
@@ -578,7 +578,7 @@ def spark_data_flow():
             row['city'] if row['city'] else '-',
             row['county'] if row['county'] else '-',
             row['company_industry'],
-            row['company_type'].replace(',', u'\uff0c'),
+            row['company_companytype'].replace(',', u'\uff0c'),
             str(row['regcap_amount']),
             row['regcap_currency'],
             str(row['realcap_amount']),
