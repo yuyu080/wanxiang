@@ -94,8 +94,7 @@ def raw_spark_data_flow():
     # ).collect(
     # )
     table_list = [
-        'baidu_news'
-       ,'dcos'
+       'dcos'
        ,'dishonesty'
        ,'ktgg'
        ,'qylogo'
