@@ -32,6 +32,13 @@ def filter_chinaese(col):
     else:
         return False
 
+def filter_length(col):
+    '''过滤明显是错误的qyxx_id'''
+    if col and len(col) > 1:
+        return True
+    else:
+        return False
+
 def get_label(x):
     try:
         return x.split(';')[2]
@@ -45,6 +52,7 @@ def spark_data_flow():
     '''
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
+    filter_length_udf = fun.udf(filter_length, tp.BooleanType())
     get_label_udf = fun.udf(get_label , tp.StringType())
 
     
@@ -53,6 +61,35 @@ def spark_data_flow():
         '{path}/{version}/person_node'.format(
         path=IN_PATH_TWO,
         version=RELATION_VERSION))
+
+    # 事件节点    
+    event_node = spark.read.csv(
+        '{path}/{version}/event_node'.format(
+            path=IN_PATH_THREE,
+            version=RELATION_VERSION))
+
+    # 分支机构中的企业节点    
+    tid_qyxx_fzjg_merge = spark.read.parquet(
+        ('{path}/'
+         'tid_qyxx_fzjg_merge/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION))
+    tid_qyxx_fzjg_merge.createOrReplaceTempView('tid_qyxx_fzjg_merge')
+    
+    # 相关信息中的企业节点
+    tmp_xgxx_relation_df = spark.read.parquet(
+        ('{path}/'
+         'tmp_xgxx_relation_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION))
+    tmp_xgxx_relation_df.createOrReplaceTempView('tmp_xgxx_relation_df')
+
+    raw_event_df = spark.read.parquet(
+        ('{path}/'
+         'raw_event_df/'
+         '{version}').format(path=TMP_PATH, 
+                             version=RELATION_VERSION))
+    raw_event_df.createOrReplaceTempView('raw_event_df')
     
     # basic
     # 特别注意：要从basic里面剔除自然人节点，真是醉了
@@ -82,7 +119,7 @@ def spark_data_flow():
         '''.format(version=basic_version)
     )
     
-    # 读取所有可能的公司节点
+    # 读取所有可能的公司节点，并将basic里面不存在的公司补到basic里面
     tmp_company_1_df = spark.sql(
         '''
         SELECT 
@@ -100,8 +137,8 @@ def spark_data_flow():
         '-' company_county,
         '-' company_industry,
         '-' company_type,
-        '-' company_gis_lat,
-        '-' company_gis_lon
+        '0' company_gis_lat,
+        '0' company_gis_lon
         FROM 
         dw.off_line_relations 
         WHERE 
@@ -116,7 +153,7 @@ def spark_data_flow():
         SELECT 
         destination_bbd_id           bbd_qyxx_id,
         destination_name             company_name,
-        '-'                                      ipo_company,
+        '-'                          ipo_company,
         '0' regcap_amount,
         '0' realcap_amount,
         '-' regcap_currency,
@@ -128,8 +165,8 @@ def spark_data_flow():
         '-' company_county,
         '-' company_industry,
         '-' company_type,
-        '-' company_gis_lat,
-        '-' company_gis_lon
+        '0' company_gis_lat,
+        '0' company_gis_lon
         FROM 
         dw.off_line_relations 
         WHERE 
@@ -138,11 +175,126 @@ def spark_data_flow():
         destination_isperson = 0
         '''.format(version=RELATION_VERSION)
     )
+
     
-    tmp_company_df = tmp_company_1_df.union(
+    tmp_company_3_df = spark.sql(
+        '''
+        SELECT 
+        b           bbd_qyxx_id,
+        b_name      company_name,
+        '-'         ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_type,
+        '0' company_gis_lat,
+        '0' company_gis_lon
+        FROM 
+        tid_qyxx_fzjg_merge
+        '''
+    )
+    
+    tmp_company_4_df = spark.sql(
+        '''
+        SELECT 
+        c           bbd_qyxx_id,
+        c_name      company_name,
+        '-'         ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_type,
+        '0' company_gis_lat,
+        '0' company_gis_lon
+        FROM 
+        tid_qyxx_fzjg_merge
+        '''
+    )
+    
+    tmp_company_5_df = spark.sql(
+        '''
+        SELECT 
+        bbd_qyxx_id,
+        company_name,
+        '-'         ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_type,
+        '0' company_gis_lat,
+        '0' company_gis_lon
+        FROM 
+        tmp_xgxx_relation_df
+        '''
+    )
+    
+    tmp_company_6_df = spark.sql(
+        '''
+        SELECT 
+        bbd_qyxx_id,
+        company_name,
+        '-' ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_type,
+        '0' company_gis_lat,
+        '0' company_gis_lon
+        FROM 
+        raw_event_df
+        '''
+    )
+    
+    tmp_company_all_df = tmp_company_1_df.union(
         tmp_company_2_df
+    ).union(
+        tmp_company_3_df
+    ).union(
+        tmp_company_4_df
+    ).union(
+        tmp_company_5_df
+    ).union(
+        tmp_company_6_df
     ).dropDuplicates(
         ['bbd_qyxx_id']
+    )
+
+    tmp_company_df = tmp_company_all_df.join(
+        raw_basic_df,
+        'bbd_qyxx_id',
+        'left_outer'
+    ).where(
+        raw_basic_df.bbd_qyxx_id.isNull()
+    ).select(
+        tmp_company_all_df['*']
     ).cache()
 
     # 数据清洗, 该中间结果很重要，是后续构造节点的关键,因此需要落地
@@ -154,7 +306,7 @@ def spark_data_flow():
     )
 
     prd_basic_df = raw_basic_df.union(
-        tmp_company_df    
+        tmp_company_df
     ).join(
         person_df,
         person_df['_c0'] == raw_basic_df.bbd_qyxx_id,
@@ -173,9 +325,22 @@ def spark_data_flow():
         filter_chinaese_udf('bbd_qyxx_id')
     ).where(
         filter_comma_udf('bbd_qyxx_id')
+    ).where(
+        filter_length_udf('bbd_qyxx_id')    
     ).dropDuplicates(
         ['bbd_qyxx_id']
     ).cache()
+    
+    # 企业节点与event节点有冲突，以event为准
+    prd_basic_df = prd_basic_df.join(
+        event_node,
+        event_node._c0 == prd_basic_df.bbd_qyxx_id,
+        'left_outer'
+    ).where(
+        event_node._c0.isNull()
+    ).select(
+        prd_basic_df['*']
+    )
     
     prd_basic_df.coalesce(
         500
@@ -487,6 +652,7 @@ if __name__ == '__main__':
     FILE_NAME = 'company_county_mapping_20170524.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     IN_PATH_TWO = '/user/wanxiang/step_three/'
+    IN_PATH_THREE = '/user/wanxiang/step_two/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_four/'
     
