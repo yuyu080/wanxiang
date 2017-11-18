@@ -102,7 +102,6 @@ def raw_spark_data_flow():
        ,'qyxg_jyyc'
        ,'qyxg_qyqs'
        ,'qyxg_yuqing'
-       ,'qyxg_yuqing_main'
        ,'qyxx_finance_xkz'
        ,'qyxx_wanfang_zhuanli'
        ,'recruit'
@@ -173,7 +172,8 @@ def raw_spark_data_flow():
         'zuzhijigoudm',
         'qyxg_zzjgdm',
         'qyxx_zhuanli',
-        'black_list'
+        'black_list',
+        'qyxg_yuqing_main'
     ]
     
     # 表+时间字段
