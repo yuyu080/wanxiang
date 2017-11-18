@@ -222,8 +222,11 @@ def spark_data_flow():
 
     # 触发计算逻辑
     raw_df = spark.read.json(
-        '{path}/{file}'.format(path=IN_PATH,
-                               version=RELATION_VERSION)).cache()    
+        '{path}/{file_name}'.format(path=IN_PATH,
+                                    file_name=RELATION_FILE_NAME)).cache()   
+    raw_yisi = spark.read.json(
+        '{path}/{file_name}'.format(path=IN_PATH,
+                                    file_name=YISI_FILE_NAME)).cache()   
     get_basic_df()
     get_baxx_df()
     get_gdxx_df()
@@ -238,20 +241,54 @@ def spark_data_flow():
     baxx_df = spark.read.parquet(
         '{path}/{version}/baxx_df'.format(path=TMP_PATH,
                                           version=RELATION_VERSION))
-    
+
     off_line_relations = basic_df.union(
         gdxx_df
     ).union(
         baxx_df
     ).distinct()
+
     
-    off_line_relations.createOrReplaceTempView('off_line_relations')
+    tid_yisi = raw_yisi.select(
+        raw_yisi.qyxxId,
+        raw_yisi.aSDatas.getField(0).getItem('newGroupId').alias('newGroupId'),
+        raw_yisi.aSDatas.getField(0).getItem('personName').alias('personName'),
+    )
+    
+    # 根据疑似数据，替换人的ID
+    off_line_relations_with_yisi = off_line_relations.join(
+        tid_yisi,
+        [off_line_relations.source_name == tid_yisi.personName, 
+         off_line_relations.destination_bbd_id == tid_yisi.qyxxId],
+        'left_outer'
+    ).select(
+        'company_name',
+        'bbd_qyxx_id',
+        'source_name',
+        fun.when(
+            tid_yisi.newGroupId.isNotNull(),
+            tid_yisi.newGroupId.alias('source_bbd_id')
+        ).otherwise(
+            off_line_relations.source_bbd_id
+        ).alias('source_bbd_id'),
+        'source_degree',
+        'source_isperson',
+        'destination_name',
+        'destination_bbd_id',
+        'destination_degree',
+        'destination_isperson',
+        'relation_type',
+        'position'
+    ).cache()
+    
+    off_line_relations_with_yisi.createOrReplaceTempView(
+        'off_line_relations_with_yisi')
     
     spark.sql(
         '''
         insert 
         overwrite table wanxiang.off_line_relations partition (dt={version})
-        select * from off_line_relations
+        select * from off_line_relations_with_yisi
         '''.format(version=RELATION_VERSION)
     )
         
@@ -285,9 +322,10 @@ def get_spark_session():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = sys.argv[2]
+    RELATION_VERSION = sys.argv[1]
     
-    FILE_NAME = 'BUSINESS_REAL_TIME_BBD_HIGGS_QYXX_20171117'
+    RELATION_FILE_NAME = 'BUSINESS_REAL_TIME_BBD_HIGGS_QYXX_20171117'
+    YISI_FILE_NAME = 'yisi'
     IN_PATH = '/user/antifraud/source/tmp_test/tmp_file/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
