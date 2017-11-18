@@ -329,6 +329,8 @@ def spark_data_flow():
         filter_comma_udf('bbd_qyxx_id')
     ).where(
         filter_length_udf('bbd_qyxx_id')    
+    ).where(
+        filter_comma_udf('company_name')
     ).dropDuplicates(
         ['bbd_qyxx_id']
     ).cache()

@@ -175,6 +175,8 @@ def spark_data_flow():
         filter_chinaese_udf('bbd_qyxx_id:ID')
     ).where(
         filter_comma_udf('bbd_qyxx_id:ID')
+    ).where(
+        filter_comma_udf('name')
     ).replace(
         '\\', ''
     ).replace(
@@ -183,6 +185,8 @@ def spark_data_flow():
         ['bbd_qyxx_id:ID']
     ).fillna(
         0
+    ).fillna(
+        '-'
     )
     
     return prd_person_df

@@ -79,6 +79,8 @@ def spark_data_flow():
         SELECT 
         source_bbd_id           b,
         destination_bbd_id      c,
+        source_name             b_name,
+        destination_name        c_name,
         upper(relation_type)    bc_relation,
         position
         FROM 
@@ -91,6 +93,10 @@ def spark_data_flow():
         (destination_isperson = 0 or destination_isperson = 1)
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
+    ).where(
+        filter_comma_udf('b_name')
+    ).where(
+        filter_comma_udf('c_name')
     ).dropDuplicates(
         ['b', 'c', 'bc_relation']
     ).cache()
