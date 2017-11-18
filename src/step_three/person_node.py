@@ -5,7 +5,7 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-person_node.py {xgxx_relation} {relation_version}
+person_node.py {xgxx_relation} {relation_version} {database}
 '''
 import sys
 import os
@@ -121,10 +121,11 @@ def spark_data_flow():
         source_isperson            b_isperson,
         destination_isperson       c_isperson
         FROM 
-        dw.off_line_relations 
+        {database}.off_line_relations 
         WHERE 
         dt='{version}'  
-        '''.format(version=RELATION_VERSION)
+        '''.format(database=DATABASE,
+                   version=RELATION_VERSION)
     )
     
     tid_person_df = raw_person_df.select(
@@ -232,6 +233,7 @@ if __name__ == '__main__':
     
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
+    DATABASE = sys.argv[3]
     TMP_PATH = '/user/wanxiang/tmpdata/'
     IN_PATH = '/user/wanxiang/step_one/'
     OUT_PATH = '/user/wanxiang/step_three/'

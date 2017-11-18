@@ -5,7 +5,7 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-company_node.py {xgxx_relation} {relation_version}
+company_node.py {xgxx_relation} {relation_version} 
 '''
 
 import sys
@@ -140,12 +140,13 @@ def spark_data_flow():
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
-        dw.off_line_relations 
+        {database}.off_line_relations 
         WHERE 
         dt='{version}'  
         AND
         source_isperson = 0
-        '''.format(version=RELATION_VERSION)
+        '''.format(database=DATABASE,
+                   version=RELATION_VERSION)
     )
     
     tmp_company_2_df = spark.sql(
@@ -168,12 +169,13 @@ def spark_data_flow():
         '0' company_gis_lat,
         '0' company_gis_lon
         FROM 
-        dw.off_line_relations 
+        {database}.off_line_relations 
         WHERE 
         dt='{version}'  
         AND
         destination_isperson = 0
-        '''.format(version=RELATION_VERSION)
+        '''.format(database=DATABASE,
+                   version=RELATION_VERSION)
     )
 
     
@@ -649,6 +651,7 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
+    DATABASE = sys.argv[3]
     FILE_NAME = 'company_county_mapping_20170524.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     IN_PATH_TWO = '/user/wanxiang/step_three/'
