@@ -5,7 +5,7 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
-role_node_and_edge.py {xgxx_relation} {relation_version}
+role_node_and_edge.py {xgxx_relation} {relation_version} {database}
 '''
 
 import sys
@@ -82,10 +82,15 @@ def spark_data_flow():
         upper(relation_type)    bc_relation,
         position
         FROM 
-        dw.off_line_relations 
+        {database}.off_line_relations 
         WHERE 
         dt='{version}'  
-        '''.format(version=RELATION_VERSION)
+        AND
+        (source_isperson = 0 or source_isperson = 1)
+        AND
+        (destination_isperson = 0 or destination_isperson = 1)
+        '''.format(database=DATABASE,
+                   version=RELATION_VERSION)
     ).dropDuplicates(
         ['b', 'c', 'bc_relation']
     ).cache()
@@ -375,6 +380,7 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
+    DATABASE = sys.argv[3]
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_one/'
 
