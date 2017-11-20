@@ -206,6 +206,10 @@ def spark_data_flow():
         filter_comma_udf('c')
     ).where(
         filter_chinaese_udf('c')
+    ).where(
+        filter_comma_udf('b_name')
+    ).where(
+        filter_comma_udf('c_name')
     ).select(
         'b',
         'b_name',
