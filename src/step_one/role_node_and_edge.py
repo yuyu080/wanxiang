@@ -67,10 +67,6 @@ def spark_data_flow():
         partial(get_id, relation='Isinvest'), tp.StringType())
     is_invest_udf = fun.udf(is_invest, tp.BooleanType())
     
-    get_relation_label_1_udf = fun.udf(
-        partial(lambda r: r, 'IS'), tp.StringType())
-    get_relation_label_2_udf = fun.udf(
-        partial(lambda r: r, 'OF'), tp.StringType())
     get_relation_label_3_udf = fun.udf(
         partial(lambda r: r, 'VIRTUAL'), tp.StringType())    
     
@@ -297,13 +293,13 @@ def spark_data_flow():
         tid_all_role_df.b.alias(':START_ID'), 
         tid_all_role_df['bbd_role_id:ID'].alias(':END_ID'),
         fun.unix_timestamp().alias('create_time:long'),
-        get_relation_label_1_udf().alias(':TYPE')
+        tid_all_role_df.bc_relation.alias(':TYPE')
     ).union(
         tid_all_role_df.select(
             tid_all_role_df['bbd_role_id:ID'].alias(':START_ID'), 
             tid_all_role_df.c.alias(':END_ID'),
             fun.unix_timestamp().alias('create_time:long'),
-            get_relation_label_2_udf().alias(':TYPE')
+            tid_all_role_df.bc_relation.alias(':TYPE')
         )
     )
 
