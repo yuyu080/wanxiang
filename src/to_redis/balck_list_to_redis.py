@@ -23,7 +23,7 @@ from pyspark.sql import functions as fun, types as tp
 
 def filter_date(date):
     try:
-        date_time = datetime.datetime.strptime(XGXX_RELATION, '%Y-%m-%d').date()
+        date_time = datetime.datetime.strptime(XGXX_RELATION, '%Y%m%d').date()
         if date < date_time:
             return True
         else:
