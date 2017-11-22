@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
+根据输入的日期参数，提前该日期前的所有黑名单企业
+
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
@@ -7,22 +9,41 @@
 --queue project.wanxiang \
 --driver-class-path /usr/share/java/mysql-connector-java-5.1.39.jar \
 --jars /usr/share/java/mysql-connector-java-5.1.39.jar \
-balck_list_to_redis.py
+balck_list_to_redis.py {xgxx_relation}
 '''
+
+import sys
+import datetime
 
 import redis
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
+from pyspark.sql import functions as fun, types as tp
+
+
+def filter_date(date):
+    try:
+        date_time = datetime.datetime.strptime(XGXX_RELATION, '%Y-%m-%d').date()
+        if date < date_time:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 
 def spark_data_flow():
     '''
     利用spark从mysql中读取黑名单数据
     '''
+    filter_date_udf = fun.udf(filter_date, tp.BooleanType())
+    
     black = spark.read.jdbc(url=URL, table="black_list", 
                             properties=PROP)
     
-    black_qyxx_id = black.select(
+    black_qyxx_id = black.where(
+        filter_date_udf('create_time')
+    ).select(
         'bbd_qyxx_id'
     ).distinct(
     ).rdd.map(
@@ -74,6 +95,7 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
+    XGXX_RELATION = sys.argv[1]
     URL='jdbc:mysql://mysql12.prod.bbdops.com:53606/bbd_higgs?characterEncoding=UTF-8'
     PROP = {"user": "airpal", 
             "password":"G2sorqM82RcVoPrb8z5V", 
