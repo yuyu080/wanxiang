@@ -16,6 +16,9 @@ from pyspark.conf import SparkConf
 
 
 def spark_data_flow():
+    '''
+    利用spark从mysql中读取黑名单数据
+    '''
     black = spark.read.jdbc(url=URL, table="black_list", 
                             properties=PROP)
     
