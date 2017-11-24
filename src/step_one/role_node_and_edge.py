@@ -36,7 +36,7 @@ def filter_chinaese(col):
 
 def get_id(src, des, relation):
     '''
-    生成规则：md5（起点id+终点id+关系类型）
+    生成规则：md5（起点name+终点id+关系类型）
     由于源ID有中文，因此这里需要做容错
     '''
     try:
@@ -99,12 +99,12 @@ def spark_data_flow():
     
     # Isinvest： 自定义的虚拟role节点
     tid_isinvest_role_df = raw_role_df.groupBy(
-        ['b', 'c']
+        ['b', 'c', 'b_name', 'c_name']
     ).agg(
         {'bc_relation': 'collect_set'}
     ).select(
         'b',
-        get_isinvest_id_udf('b', 'c').alias('bbd_role_id:ID'),
+        get_isinvest_id_udf('b_name', 'c').alias('bbd_role_id:ID'),
         'c',
         is_invest_udf(
             'collect_set(bc_relation)'
@@ -132,7 +132,7 @@ def spark_data_flow():
     # role：角色节点
     tid_role_df = raw_role_df.select(
         'b',
-        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        get_id_udf('b_name', 'c', 'bc_relation').alias('bbd_role_id:ID'),
         'c',
         'bc_relation',
         'position'
@@ -152,6 +152,7 @@ def spark_data_flow():
         
         SELECT
         shareholder_id b,
+        shareholder_name b_name,
         bbd_qyxx_id c,
         'INVEST' bc_relation,
         invest_ratio ratio
@@ -162,7 +163,7 @@ def spark_data_flow():
         '''.format(version=XGXX_RELATION)
     ).select(
         'b',
-        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        get_id_udf('b_name', 'c', 'bc_relation').alias('bbd_role_id:ID'),
         'c',
         'bc_relation',
         'ratio'
@@ -209,7 +210,7 @@ def spark_data_flow():
     ).select(
         'b',
         'b_name',
-        get_id_udf('b', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        get_id_udf('b_name', 'c', 'bc_relation').alias('bbd_role_id:ID'),
         'c',
         'c_name',
         'bc_relation',
