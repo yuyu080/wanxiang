@@ -129,6 +129,7 @@ def raw_spark_data_flow():
        ,'qyxx_mordetail'
        ,'domain_name_website_info'
        ,'overseas_investment'
+       ,'qyxg_debet'
        ,'qyxx_nb_jbxx'
        ,'qyxx_nb_gzsm'
        ,'qyxx_nb_czxx'
@@ -411,7 +412,10 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
         "raw_event_df/{version}").format(path=TMP_PATH, 
                                          version=RELATION_VERSION))
     
-    raw_event_df.coalesce(
+    # 根据关联方日期来过滤事件，以此得到历史的事件节点
+    raw_event_df.where(
+        raw_event_df.event_time < FORMAT_RELATION_VERSION
+    ).coalesce(
         300
     ).write.parquet(
         ("{path}/"
@@ -625,8 +629,10 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
+    FORMAT_RELATION_VERSION = datetime.datetime.strptime(
+        RELATION_VERSION, '%Y%m%d').strftime('%Y-%m-%d')
     
-    FILE_NAME = 'raw_graph_event_col_20171024.data'
+    FILE_NAME = 'raw_graph_event_col_20171127.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
