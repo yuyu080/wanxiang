@@ -40,7 +40,9 @@ def get_id(src, des, relation):
     由于源ID有中文，因此这里需要做容错
     '''
     try:
-        role_id = hashlib.md5(src + des + relation)
+        role_id = hashlib.md5(src.encode('utf-8') + 
+                              des.encode('utf-8') +
+                              relation.encode('utf-8'))
         return role_id.hexdigest()
     except:
         return ''
@@ -149,7 +151,6 @@ def spark_data_flow():
     # 给投资节点加上投资比例，其余节点的比例为空
     raw_qyxx_gdxx_ratio = spark.sql(
         '''
-        
         SELECT
         shareholder_id b,
         shareholder_name b_name,
