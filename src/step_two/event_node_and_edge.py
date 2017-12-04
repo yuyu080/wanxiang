@@ -93,6 +93,10 @@ def raw_spark_data_flow():
     #     lambda r: r.bbd_table
     # ).collect(
     # )
+    
+#==============================================================================
+#     特别注意，'qyxg_debet'将在下次更新时加进
+#==============================================================================
     table_list = [
        'dcos'
        ,'dishonesty'
@@ -129,7 +133,6 @@ def raw_spark_data_flow():
        ,'qyxx_mordetail'
        ,'domain_name_website_info'
        ,'overseas_investment'
-       ,'qyxg_debet'
        ,'qyxx_nb_jbxx'
        ,'qyxx_nb_gzsm'
        ,'qyxx_nb_czxx'
@@ -597,7 +600,7 @@ def run():
     由于balck_list事件比较特殊，因此需要单独计算
     '''
     TABLE_LIST, FILTER_LIST, TABLE_DICT = raw_spark_data_flow()
-    tmp_spark_data_flow(TABLE_DICT)
+    #tmp_spark_data_flow(TABLE_DICT)
     tid_spark_data_flow(TABLE_LIST, FILTER_LIST, TABLE_DICT)
     prd_spark_data_flow()
     prd_event_nodes_df, prd_event_edge_df = prd_spark_graph_data_flow()    
