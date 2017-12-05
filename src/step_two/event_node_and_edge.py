@@ -297,7 +297,7 @@ def tmp_spark_data_flow(TABLE_DICT):
     ).union(
         tmp_xgxx_relation_df_5
     ).dropDuplicates(
-        ['bbd_xgxx_id', 'bbd_table']
+        ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
     )
     
     os.system(
@@ -397,7 +397,7 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
     ).fillna(
         0
     ).dropDuplicates(
-        ['bbd_xgxx_id', 'bbd_table']
+        ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
     ).select(
         'id',
         'bbd_qyxx_id',
