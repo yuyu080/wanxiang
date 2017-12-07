@@ -123,11 +123,9 @@ def to_local():
     get_file('step_one', 'isinvest_role_edge')
     print "step_one sucess !!"
 
-#==============================================================================
-#     get_file('step_two', 'event_node')
-#     get_file('step_two', 'event_edge')
-#     print "step_two sucess !!"
-#==============================================================================
+    get_file('step_two', 'event_node')
+    get_file('step_two', 'event_edge')
+    print "step_two sucess !!"
     
     get_file('step_three', 'person_node')
     print "step_three sucess !!"
@@ -135,36 +133,32 @@ def to_local():
     get_file('step_four', 'company_node')
     print "step_four sucess !!"
     
-#==============================================================================
-#     get_file('step_five', 'region_node')
-#     get_file('step_five', 'region_edge')
-#     print "step_five sucess !!"
-#     
-#     get_file('step_six', 'industry_node')
-#     get_file('step_six', 'industry_edge')
-#     print "step_six sucess !!"
-#     
-#     get_file('step_seven', 'time_node')
-#     get_file('step_seven', 'time_edge')
-#     print "step_seven sucess !!"
-#==============================================================================
+    get_file('step_five', 'region_node')
+    get_file('step_five', 'region_edge')
+    print "step_five sucess !!"
+    
+    get_file('step_six', 'industry_node')
+    get_file('step_six', 'industry_edge')
+    print "step_six sucess !!"
+    
+    get_file('step_seven', 'time_node')
+    get_file('step_seven', 'time_edge')
+    print "step_seven sucess !!"
     
 def run():
 
     # 实时关联方与历史关联方存在不同的库，因此需要单独区分
     # 实时关联方需要新增一个流程，及解析关联方数据
-#==============================================================================
-#     if not IS_HISTORY:
-#         step_zero()
-#==============================================================================
+    if not IS_HISTORY:
+        step_zero()
 
     step_one()
-    #step_two()
+    step_two()
     step_three()
     step_four()
-    #step_five()
-    #step_six()
-    #step_seven()
+    step_five()
+    step_six()
+    step_seven()
     to_local()
     
 if __name__ == '__main__':
@@ -172,8 +166,8 @@ if __name__ == '__main__':
     # 本地项目路径
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20171117'
-    XGXX_RELATION = '20171117'
+    RELATION_VERSION = '20171206'
+    XGXX_RELATION = '20171206'
     
     IS_HISTORY=False
     
