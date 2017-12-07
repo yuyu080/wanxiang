@@ -129,6 +129,8 @@ def spark_data_flow():
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),
         get_isinvest_label_udf().alias(':LABEL')    
+    ).dropDuplicates(
+        ['bbd_role_id:ID']
     )
     
     # role：角色节点
@@ -262,6 +264,8 @@ def spark_data_flow():
         '', '-'
     ).replace(
         'null', '-'
+    ).dropDuplicates(
+        ['bbd_role_id:ID']
     ).cache()
 
     # Isinvest： 虚拟角色节点的关系
