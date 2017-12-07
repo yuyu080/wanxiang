@@ -600,7 +600,7 @@ def run():
     由于balck_list事件比较特殊，因此需要单独计算
     '''
     TABLE_LIST, FILTER_LIST, TABLE_DICT = raw_spark_data_flow()
-    #tmp_spark_data_flow(TABLE_DICT)
+    tmp_spark_data_flow(TABLE_DICT)
     tid_spark_data_flow(TABLE_LIST, FILTER_LIST, TABLE_DICT)
     prd_spark_data_flow()
     prd_event_nodes_df, prd_event_edge_df = prd_spark_graph_data_flow()    
