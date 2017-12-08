@@ -415,7 +415,7 @@ def spark_data_flow():
 
     # fzjg
     tmp_fzjg_df = tmp_role_df.where(
-        tmp_role_df.TYPE == 'OF'
+        tmp_role_df.END_LABEL.isNull()
     ).where(
         get_label_udf('START_LABEL') == 'Branch'
     ).groupBy(
@@ -429,7 +429,7 @@ def spark_data_flow():
     
     # dwtzxx
     tmp_dwtzxx_df = tmp_role_df.where(
-        tmp_role_df.TYPE == 'IS'
+        tmp_role_df.START_LABEL.isNull()
     ).where(
         get_label_udf('END_LABEL') == 'Invest'
     ).groupBy(
@@ -443,7 +443,7 @@ def spark_data_flow():
     
     # gdxx
     tmp_gdxx_df = tmp_role_df.where(
-        tmp_role_df.TYPE == 'OF'
+        tmp_role_df.END_LABEL.isNull()
     ).where(
         get_label_udf('START_LABEL') == 'Invest'
     ).groupBy(
@@ -457,7 +457,7 @@ def spark_data_flow():
     
     # baxx
     tmp_baxx_df = tmp_role_df.where(
-        tmp_role_df.TYPE == 'OF'
+        tmp_role_df.END_LABEL.isNull()
     ).where(
         fun.when(
             get_label_udf('START_LABEL') == 'Supervisor', True
