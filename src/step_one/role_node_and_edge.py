@@ -281,6 +281,8 @@ def spark_data_flow():
             fun.unix_timestamp().alias('create_time:long'),
             get_relation_label_3_udf().alias(':TYPE')
         )
+    ).dropDuplicates(
+        [':START_ID', ':END_ID']
     )
     
     # role：角色节点的关系
@@ -307,6 +309,8 @@ def spark_data_flow():
             fun.unix_timestamp().alias('create_time:long'),
             tid_all_role_df.bc_relation.alias(':TYPE')
         )
+    ).dropDuplicates(
+        [':START_ID', ':END_ID']
     )
 
     return (prd_isinvest_role_node_df, prd_role_node_df,
