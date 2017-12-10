@@ -146,7 +146,7 @@ def spark_data_flow():
                                               version=RELATION_VERSION))
     
     tmp_dwtzxx_df = tmp_role_df.where(
-        tmp_role_df.TYPE == 'IS'
+        tmp_role_df.START_LABEL.isNull()
     ).where(
         get_label_udf('END_LABEL') == 'Invest'
     ).groupBy(
