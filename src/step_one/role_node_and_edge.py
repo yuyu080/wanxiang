@@ -56,6 +56,17 @@ def is_invest(col):
 def get_role_label(label):
     return 'Entity;Role;{0}'.format(label.lower().capitalize())
 
+def get_chinese(string):
+    '''获得中文字符串'''
+    try:
+        result = re.findall(ur'[\u4e00-\u9fa5]', string)
+        if result:
+            return ''.join(result)
+        else:
+            return '-'
+    except:
+        return '-'
+
 
 def spark_data_flow():
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
@@ -68,6 +79,7 @@ def spark_data_flow():
     get_isinvest_id_udf = fun.udf(
         partial(get_id, relation='Isinvest'), tp.StringType())
     is_invest_udf = fun.udf(is_invest, tp.BooleanType())
+    get_chinese_udf = fun.udf(get_chinese, tp.StringType())
     
     get_relation_label_3_udf = fun.udf(
         partial(lambda r: r, 'VIRTUAL'), tp.StringType())    
@@ -251,7 +263,7 @@ def spark_data_flow():
         'left_outer'
     ).select(
         tid_role_df['bbd_role_id:ID'],
-        tid_role_df.position.alias('role_name'),
+        get_chinese_udf(tid_role_df.position).alias('role_name'),
         raw_qyxx_gdxx_ratio.ratio.alias("ratio"),
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),    
