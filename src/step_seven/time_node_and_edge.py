@@ -14,6 +14,7 @@ import re
 import datetime
 import time
 import calendar
+import random
 from functools import partial
 
 from pyspark.sql import SparkSession
@@ -58,19 +59,17 @@ def get_timestamp(date):
     except:
         return 0
 
+def  get_event_frequency_day(enent_time, time_range):
+    try:
+        return enent_time + '-' + str(random.randint(1, time_range-1))
+    except:
+        return None
 
 def spark_data_flow():
     '''
     行业节点，可以根据“企业节点”的中间结果统计
     '''
-    get_time_label_udf = fun.udf(get_time_label, tp.StringType())
-    get_month_udf = fun.udf(
-        partial(re_date, return_type='%Y-%m'), tp.StringType())
-    get_year_udf = fun.udf(
-        partial(re_date, return_type='%Y'), tp.StringType())
-    get_time_relation_label_udf = fun.udf(
-        partial(lambda r: r, 'BELONG'), tp.StringType())
-
+    secondary_time_node_range = 101
     year_range = range(1970, 2025) 
     month_range = [
         '01', '02', '03',
@@ -78,6 +77,14 @@ def spark_data_flow():
         '07', '08', '09',
         '10', '11', '12'
     ]
+    
+    get_time_label_udf = fun.udf(get_time_label, tp.StringType())
+    get_time_relation_label_udf = fun.udf(
+        partial(lambda r: r, 'BELONG'), tp.StringType())
+    get_event_frequency_day_udf = fun.udf(
+        partial(get_event_frequency_day, 
+                time_range=secondary_time_node_range), tp.StringType())
+
     tid_xgxx_relation_df = spark.read.parquet(
         "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
                                                        version=RELATION_VERSION)
@@ -93,6 +100,7 @@ def spark_data_flow():
                               for month in month_range]
     # 日节点
     DAY_LIST = []
+    FREQUENCY_LIST = []
     for year in year_range:
         for month in month_range:
             for day in get_month_range(year, month):
@@ -100,74 +108,29 @@ def spark_data_flow():
                     DAY_LIST.append('{0}-{1}-0{2}'.format(year, month, day))
                 else:
                     DAY_LIST.append('{0}-{1}-{2}'.format(year, month, day))
+                for frequency in range(1, secondary_time_node_range):
+                    if day < 10:
+                        FREQUENCY_LIST.append(
+                            '{0}-{1}-0{2}-{3}'.format(year, month, 
+                                                      day, frequency))
+                    else:
+                        FREQUENCY_LIST.append(
+                            '{0}-{1}-{2}-{3}'.format(year, month, 
+                                                     day, frequency))
                     
     raw_time_df = spark.sparkContext.parallelize(
-        YEAR_LIST + MONTH_LIST + DAY_LIST
+        YEAR_LIST + MONTH_LIST + DAY_LIST + FREQUENCY_LIST
     ).map(
         lambda r: Row(time=r)
     ).toDF()
-    
-    # 时间-事件关系
-    # 通过时间-事件关系，计算各个时间的事件个数
-    tmp_time_edge_df = tid_xgxx_relation_df.select(
-        'bbd_xgxx_id',
-        'event_time'
-    ).dropDuplicates(
-        ['bbd_xgxx_id']
-    )    
-    
-    tmp_time_day_count_df = tmp_time_edge_df.groupBy(
-        'event_time'
-    ).count(
-    ).withColumnRenamed(
-        'count', 'num'
-    ).cache()
-    
-    tmp_time_month_count_df = tmp_time_day_count_df.select(
-        get_month_udf(
-            tmp_time_day_count_df.event_time
-        ).alias('event_time_month'),
-        'num'
-    ).groupBy(
-        'event_time_month'
-    ).agg(
-        {'num': 'sum'}
-    ).withColumnRenamed(
-        'sum(num)', 'num'
-    )
-    
-    tmp_time_year_count_df = tmp_time_day_count_df.select(
-        get_year_udf(
-            tmp_time_day_count_df.event_time
-        ).alias('event_time_year'),
-        'num'
-    ).groupBy(
-        'event_time_year'
-    ).agg(
-        {'num': 'sum'}
-    ).withColumnRenamed(
-        'sum(num)', 'num'
-    )
-    
-    tmp_time_distribution_df = tmp_time_day_count_df.union(
-        tmp_time_month_count_df
-    ).union(
-        tmp_time_year_count_df
-    )    
-    
-    prd_time_node_df = raw_time_df.join(
-        tmp_time_distribution_df,
-        raw_time_df.time == tmp_time_distribution_df.event_time,
-        'left_outer'
-    ).select(
+
+    prd_time_node_df = raw_time_df.select(
         raw_time_df.time.alias('time:ID'),
-        tmp_time_distribution_df.num.alias('company_num:int'),
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),
         get_time_label_udf().alias(':LABEL')
-    ).fillna(
-        {'company_num:int': 0}
     )
+    
     
     '''
     时间节点与其他节点的关系
@@ -184,6 +147,7 @@ def spark_data_flow():
         for month in month_range]
     
     DAY_RELATION = []
+    FREQUENCY_RELATION = []
     for year in year_range:
         for month in month_range:
             for day in get_month_range(year, month):
@@ -195,9 +159,20 @@ def spark_data_flow():
                     DAY_RELATION.append(
                         ('{0}-{1}-{2}'.format(year, month, day), 
                          '{0}-{1}'.format(year, month)))
+                for frequency in range(1, secondary_time_node_range):
+                    if day < 10:
+                        FREQUENCY_RELATION.append(
+                            ('{0}-{1}-0{2}-{3}'.format(year, month, 
+                                                       day, frequency),
+                             '{0}-{1}-0{2}'.format(year, month, day)))
+                    else:
+                        FREQUENCY_RELATION.append(
+                            ('{0}-{1}-{2}-{3}'.format(year, month, 
+                                                      day, frequency),
+                             '{0}-{1}-{2}'.format(year, month, day)))
                     
     raw_time_edge_df = spark.sparkContext.parallelize(
-        YEAR_RELATION + MONTH_RELATION + DAY_RELATION
+        YEAR_RELATION + MONTH_RELATION + DAY_RELATION + FREQUENCY_RELATION
     ).map(
         lambda r: Row(src=r[0], des=r[1])
     ).toDF()
@@ -207,6 +182,14 @@ def spark_data_flow():
         raw_time_edge_df.des.alias(':END_ID'),
         fun.unix_timestamp().alias('create_time:long'),
         get_time_relation_label_udf().alias(':TYPE')
+    )
+    
+    # 时间-事件关系
+    tmp_time_edge_df = tid_xgxx_relation_df.select(
+        'bbd_xgxx_id',
+        get_event_frequency_day_udf('event_time').alias('event_time')
+    ).dropDuplicates(
+        ['bbd_xgxx_id']
     )
         
     prd_time_edge_2_df = tmp_time_edge_df.join(
@@ -224,7 +207,7 @@ def spark_data_flow():
     )
         
     return prd_time_node_df, prd_time_edge_df
-        
+
 
 def get_spark_session():   
     conf = SparkConf()
