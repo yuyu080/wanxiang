@@ -69,7 +69,7 @@ def spark_data_flow():
     '''
     行业节点，可以根据“企业节点”的中间结果统计
     '''
-    secondary_time_node_range = 101
+    secondary_time_node_range = 301
     year_range = range(1970, 2025) 
     month_range = [
         '01', '02', '03',
