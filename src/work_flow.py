@@ -149,10 +149,8 @@ def run():
 
     # 实时关联方与历史关联方存在不同的库，因此需要单独区分
     # 实时关联方需要新增一个流程，及解析关联方数据
-#==============================================================================
-#     if not IS_HISTORY:
-#         step_zero()
-#==============================================================================
+    if not IS_HISTORY:
+        step_zero()
 
     step_one()
     step_two()
@@ -168,8 +166,8 @@ if __name__ == '__main__':
     # 本地项目路径
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20171206'
-    XGXX_RELATION = '20171206'
+    RELATION_VERSION = '20171220'
+    XGXX_RELATION = '20171220'
     
     IS_HISTORY=False
     
