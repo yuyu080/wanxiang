@@ -132,6 +132,7 @@ def raw_spark_data_flow():
        ,'qyxx_sharesimpawn'
        ,'qyxx_mordetail'
        ,'domain_name_website_info'
+       ,'qyxg_debet'
        ,'overseas_investment'
        ,'qyxx_nb_jbxx'
        ,'qyxx_nb_gzsm'
