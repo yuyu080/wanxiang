@@ -18,7 +18,7 @@ def execute_some_step(step_name, file_name,
         --master yarn \
         --deploy-mode client \
         --driver-memory 15g \
-        --queue root.default \
+        --queue project.wanxiang \
         {path}/{file_name} {in_version} {out_version} {database}
         '''.format(path=IN_PATH+step_name, 
                    file_name=file_name,
