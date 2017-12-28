@@ -307,7 +307,9 @@ def tmp_spark_data_flow(TABLE_DICT):
         "tmp_xgxx_relation_df/{version}").format(path=TMP_PATH, 
                                                  version=RELATION_VERSION))
     
-    tmp_xgxx_relation_df.coalesce(
+    tmp_xgxx_relation_df.where(
+        tmp_xgxx_relation_df.event_time < FORMAT_RELATION_VERSION
+    ).coalesce(
         300
     ).write.parquet(
         ("{path}/"
