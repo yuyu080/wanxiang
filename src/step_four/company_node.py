@@ -104,12 +104,12 @@ def spark_data_flow():
         regcap_currency,
         realcap_currency,
         cast(esdate as string) esdate,
-        regexp_replace(regexp_replace(address,',',''),'\"','') address,
+        regexp_replace(address,'\"','') address,
         company_enterprise_status,
         company_province,
         company_county,
         company_industry,
-        regexp_replace(regexp_replace(company_companytype,',',''),'\"','') company_companytype,
+        regexp_replace(company_companytype,'\"','') company_companytype,
         company_gis_lat,
         company_gis_lon
         FROM
@@ -576,7 +576,7 @@ def spark_data_flow():
             get_some_xgxx_info('qyxx_nb_jbxx'),
             str(row['company_gis_lon']),
             str(row['company_gis_lat']),
-            row['address'],
+            row['address'].replace(',', u'\uff0c'),
             row['company_enterprise_status'].replace(',', u'\uff0c'),
             row['province'] if row['province'] else '-',
             row['city'] if row['city'] else '-',
