@@ -200,7 +200,7 @@ def tmp_spark_data_flow(TABLE_DICT):
             '{table_name}' bbd_table,
             0 id_type,
             dt,
-            {event_time} event_time,
+            CAST({event_time} AS string) event_time,
             {col}
             FROM
             dw.{table_name}
