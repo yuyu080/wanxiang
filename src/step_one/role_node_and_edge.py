@@ -110,7 +110,7 @@ def spark_data_flow():
     
     # Isinvest： 自定义的虚拟role节点
     tid_isinvest_role_df = raw_role_df.groupBy(
-        ['c', 'b_name']
+        ['b', 'c', 'b_name', 'c_name']
     ).agg(
         {'bc_relation': 'collect_set'}
     ).select(
