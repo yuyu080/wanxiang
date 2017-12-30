@@ -144,7 +144,7 @@ def spark_data_flow():
         WHERE 
         dt='{version}'  
         AND
-        source_isperson = 0
+        source_isperson != 1
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     )
