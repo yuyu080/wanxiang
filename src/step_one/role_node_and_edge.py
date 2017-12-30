@@ -34,15 +34,16 @@ def filter_chinaese(col):
     else:
         return False
 
-def get_id(src, des, relation):
+def get_id(src, des, relation, position):
     '''
-    生成规则：md5（起点name+终点id+关系类型）
+    生成规则：md5（起点name+终点id+关系类型+关系名）
     由于源ID有中文，因此这里需要做容错
     '''
     try:
         role_id = hashlib.md5(src.encode('utf-8') + 
                               des.encode('utf-8') +
-                              relation.encode('utf-8'))
+                              relation.encode('utf-8') +
+                              position.encode('utf-8'))
         return role_id.hexdigest()
     except:
         return ''
@@ -77,7 +78,7 @@ def spark_data_flow():
         partial(get_role_label, 'Isinvest'), tp.StringType())
     get_id_udf = fun.udf(get_id, tp.StringType())
     get_isinvest_id_udf = fun.udf(
-        partial(get_id, relation='Isinvest'), tp.StringType())
+        partial(get_id, relation='Isinvest', position=''), tp.StringType())
     is_invest_udf = fun.udf(is_invest, tp.BooleanType())
     get_chinese_udf = fun.udf(get_chinese, tp.StringType())
     
@@ -96,11 +97,7 @@ def spark_data_flow():
         FROM 
         {database}.off_line_relations 
         WHERE 
-        dt='{version}'  
-        AND
-        (source_isperson = 0 or source_isperson = 1)
-        AND
-        (destination_isperson = 0 or destination_isperson = 1)
+        dt='{version}'
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     ).where(
@@ -108,12 +105,12 @@ def spark_data_flow():
     ).where(
         filter_comma_udf('c_name')
     ).dropDuplicates(
-        ['b', 'c', 'bc_relation']
+        ['b_name', 'c', 'bc_relation', 'position']
     ).cache()
     
     # Isinvest： 自定义的虚拟role节点
     tid_isinvest_role_df = raw_role_df.groupBy(
-        ['b', 'c', 'b_name', 'c_name']
+        ['c', 'b_name']
     ).agg(
         {'bc_relation': 'collect_set'}
     ).select(
@@ -148,7 +145,8 @@ def spark_data_flow():
     # role：角色节点
     tid_role_df = raw_role_df.select(
         'b',
-        get_id_udf('b_name', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        get_id_udf('b_name', 'c', 
+                   'bc_relation', 'position').alias('bbd_role_id:ID'),
         'c',
         'bc_relation',
         'position'
@@ -170,6 +168,7 @@ def spark_data_flow():
         shareholder_name b_name,
         bbd_qyxx_id c,
         'INVEST' bc_relation,
+        shareholder_type position, 
         invest_ratio ratio
         FROM
         dw.qyxx_gdxx
@@ -178,7 +177,8 @@ def spark_data_flow():
         '''.format(version=XGXX_RELATION)
     ).select(
         'b',
-        get_id_udf('b_name', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        get_id_udf('b_name', 'c', 
+                   'bc_relation', 'position').alias('bbd_role_id:ID'),
         'c',
         'bc_relation',
         'ratio'
@@ -225,7 +225,8 @@ def spark_data_flow():
     ).select(
         'b',
         'b_name',
-        get_id_udf('b_name', 'c', 'bc_relation').alias('bbd_role_id:ID'),
+        get_id_udf('b_name', 'c', 
+                   'bc_relation', 'role_name').alias('bbd_role_id:ID'),
         'c',
         'c_name',
         'bc_relation',
