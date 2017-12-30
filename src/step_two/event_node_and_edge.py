@@ -298,7 +298,7 @@ def tmp_spark_data_flow(TABLE_DICT):
                                                  version=RELATION_VERSION))
     
     tmp_xgxx_relation_df.where(
-        tmp_xgxx_relation_df.event_time < FORMAT_RELATION_VERSION
+        tmp_xgxx_relation_df.event_time <= FORMAT_RELATION_VERSION
     ).coalesce(
         300
     ).write.parquet(
@@ -328,7 +328,7 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
                     bbd_xgxx_id,
                     bbd_qyxx_id,
                     dt,
-                    {event_time} event_time,
+                    CAST({event_time} AS string) event_time,
                     '-' company_name
                     FROM
                     dw.{table_name}
@@ -410,7 +410,7 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
     
     # 根据关联方日期来过滤事件，以此得到历史的事件节点
     raw_event_df.where(
-        raw_event_df.event_time < FORMAT_RELATION_VERSION
+        raw_event_df.event_time <= FORMAT_RELATION_VERSION
     ).coalesce(
         300
     ).write.parquet(
