@@ -135,16 +135,6 @@ def raw_spark_data_flow():
        ,'qyxg_debet'
        ,'overseas_investment'
        ,'qyxx_nb_jbxx'
-       ,'qyxx_nb_gzsm'
-       ,'qyxx_nb_czxx'
-       ,'qyxx_nb_wzxx'
-       ,'qyxx_nb_fzjg'
-       ,'qyxx_nb_tzxx'
-       ,'qyxx_nb_zcxx'
-       ,'qyxx_nb_dbxx'
-       ,'qyxx_nb_xgxx'
-       ,'qyxx_nb_xzxk'
-       ,'qyxx_nb_bgxx'
     ]
     
     #需要被剔除的表(节点)
