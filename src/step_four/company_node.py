@@ -654,7 +654,7 @@ if __name__ == '__main__':
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     DATABASE = sys.argv[3]
-    FILE_NAME = 'company_county_mapping_20170524.data'
+    FILE_NAME = 'company_county_mapping_20180103.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     IN_PATH_TWO = '/user/wanxiang/step_three/'
     IN_PATH_THREE = '/user/wanxiang/step_two/'

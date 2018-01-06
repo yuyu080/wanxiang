@@ -273,7 +273,7 @@ if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
-    FILE_NAME = 'company_county_mapping_20170524.data'
+    FILE_NAME = 'company_county_mapping_20180103.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_five/'
