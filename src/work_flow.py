@@ -166,7 +166,7 @@ if __name__ == '__main__':
     # 本地项目路径
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20171229'
+    RELATION_VERSION = '20171219'
     XGXX_RELATION = '20171229'
     
     IS_HISTORY=True
