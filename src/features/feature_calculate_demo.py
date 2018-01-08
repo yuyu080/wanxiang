@@ -10,7 +10,7 @@ def get_graph_data_2(driver, bbd_qyxx_id):
         with session.begin_transaction() as tx:
             nodes = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:IS|OF|VIRTUAL|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
                 with nodes(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
@@ -18,7 +18,7 @@ def get_graph_data_2(driver, bbd_qyxx_id):
                 bbd_qyxx_id=bbd_qyxx_id)
             edges = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:IS|OF|VIRTUAL|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
                 with relationships(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
@@ -99,7 +99,9 @@ if __name__ == '__main__':
     
     
     # 将图结构保存成一个json
-    out_file='graph_structure_20170926.json'
-    get_graph_structure(node_data, edge_data, out_file)
+#==============================================================================
+#     out_file='graph_structure_20170926.json'
+#     get_graph_structure(node_data, edge_data, out_file)
+#==============================================================================
     
     
