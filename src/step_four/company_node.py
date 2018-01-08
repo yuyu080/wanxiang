@@ -144,7 +144,7 @@ def spark_data_flow():
         WHERE 
         dt='{version}'  
         AND
-        source_isperson != 1
+        (source_isperson = 0 or source_isperson = 3)
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     )
@@ -328,7 +328,7 @@ def spark_data_flow():
     ).where(
         filter_comma_udf('bbd_qyxx_id')
     ).where(
-        filter_length_udf('bbd_qyxx_id')    
+        filter_length_udf('bbd_qyxx_id')
     ).where(
         filter_comma_udf('company_name')
     ).dropDuplicates(
@@ -402,8 +402,6 @@ def spark_data_flow():
                                     file_name=FILE_NAME),
         sep='\t',
         header=True
-    ).withColumnRenamed(
-        'code', 'company_county'
     ).dropDuplicates(
         ['company_county']
     )
@@ -654,7 +652,7 @@ if __name__ == '__main__':
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     DATABASE = sys.argv[3]
-    FILE_NAME = 'company_county_mapping_20170524.data'
+    FILE_NAME = 'company_county_mapping_20180103.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     IN_PATH_TWO = '/user/wanxiang/step_three/'
     IN_PATH_THREE = '/user/wanxiang/step_two/'

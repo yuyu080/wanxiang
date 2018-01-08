@@ -98,6 +98,11 @@ def spark_data_flow():
         {database}.off_line_relations 
         WHERE 
         dt='{version}'
+        AND
+        (source_isperson = 0 or source_isperson = 1 or source_isperson = 3)
+        AND
+        (destination_isperson = 0 or destination_isperson = 1 or destination_isperson = 3)
+
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     ).where(
