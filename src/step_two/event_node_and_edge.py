@@ -287,6 +287,10 @@ def tmp_spark_data_flow(TABLE_DICT):
         tmp_xgxx_relation_df_4
     ).union(
         tmp_xgxx_relation_df_5
+    ).fillna(
+        '0'
+    ).fillna(
+        0
     ).dropDuplicates(
         ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
     )
@@ -628,7 +632,7 @@ if __name__ == '__main__':
     FORMAT_RELATION_VERSION = datetime.datetime.strptime(
         RELATION_VERSION, '%Y%m%d').strftime('%Y-%m-%d')
     
-    FILE_NAME = 'raw_graph_event_col_20171127.data'
+    FILE_NAME = 'raw_graph_event_col_20180103.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
