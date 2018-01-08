@@ -324,9 +324,9 @@ if __name__ == '__main__':
     # 输入参数
     RELATION_VERSION = sys.argv[1]
     
-    RELATION_FILE_NAME = 'BUSINESS_REAL_TIME_BBD_HIGGS_QYXX_20171229'
-    YISI_FILE_NAME = 'uniq_person_id_20171229'
-    IN_PATH = '/user/wanxiang/20171229wanxiangfromc5/'
+    RELATION_FILE_NAME = 'BUSINESS_REAL_TIME_BBD_HIGGS_QYXX_20180108'
+    YISI_FILE_NAME = 'uniq_person_id_20180108'
+    IN_PATH = '/user/wanxiang/20180108wanxiangfromc5/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
 
