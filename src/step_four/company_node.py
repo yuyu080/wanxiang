@@ -595,8 +595,6 @@ def spark_data_flow():
                 lambda r: r.replace(
                     ',', u'\uff0c'
                 ).replace(
-                    '\\', ''
-                ).replace(
                     '"', ''
                 ), result
             )
