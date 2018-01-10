@@ -215,6 +215,10 @@ def tmp_spark_data_flow(TABLE_DICT):
                       )
         ).fillna(
             ''
+        ).replace(
+            'null', ''
+        ).replace(
+            'NULL', ''
         )
         
         tid_df = raw_df.select(
@@ -393,6 +397,10 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
         '0'
     ).fillna(
         0
+    ).replace(
+        'null', ''
+    ).replace(
+        'NULL', ''
     ).dropDuplicates(
         ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
     ).select(
