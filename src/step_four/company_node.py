@@ -15,7 +15,8 @@ import re
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
 from pyspark.sql import functions as fun, types as tp
-
+from pyspark.sql import Window
+from pyspark.sql.functions import row_number
 
 def filter_comma(col):
     '''ID中逗号或为空值，则将该记录删除'''
@@ -54,7 +55,11 @@ def spark_data_flow():
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     filter_length_udf = fun.udf(filter_length, tp.BooleanType())
     get_label_udf = fun.udf(get_label , tp.StringType())
-
+    window = Window.partitionBy(
+        ['bbd_qyxx_id']
+    ).orderBy(
+        'weight'
+    )
     
     # 自然人节点
     person_df = spark.read.csv(
@@ -275,18 +280,33 @@ def spark_data_flow():
         '''
     )
     
-    tmp_company_all_df = tmp_company_1_df.union(
-        tmp_company_2_df
+    # 根据bbd_qyxx_id来源的不同，赋予不同的权重，已去重
+    tmp_company_all_df = tmp_company_1_df.withColumn(
+        'weight', fun.udf(lambda x: 0, tp.IntegerType())('bbd_qyxx_id')
     ).union(
-        tmp_company_3_df
+        tmp_company_2_df.withColumn(
+            'weight', fun.udf(lambda x: 0, tp.IntegerType())('bbd_qyxx_id')
+        )
     ).union(
-        tmp_company_4_df
+        tmp_company_3_df.withColumn(
+            'weight', fun.udf(lambda x: 0, tp.IntegerType())('bbd_qyxx_id')
+        )
     ).union(
-        tmp_company_5_df
+        tmp_company_4_df.withColumn(
+            'weight', fun.udf(lambda x: 0, tp.IntegerType())('bbd_qyxx_id')
+        )
     ).union(
-        tmp_company_6_df
-    ).dropDuplicates(
-        ['bbd_qyxx_id']
+        tmp_company_5_df.withColumn(
+            'weight', fun.udf(lambda x: 0, tp.IntegerType())('bbd_qyxx_id')
+        )
+    ).union(
+        tmp_company_6_df.withColumn(
+            'weight', fun.udf(lambda x: 1, tp.IntegerType())('bbd_qyxx_id')
+        )
+    ).withColumn(
+        'row_number', row_number().over(window)
+    ).where(
+        'row_number == 1'
     )
 
     tmp_company_df = tmp_company_all_df.join(
@@ -296,7 +316,22 @@ def spark_data_flow():
     ).where(
         raw_basic_df.bbd_qyxx_id.isNull()
     ).select(
-        tmp_company_all_df['*']
+        tmp_company_all_df.bbd_qyxx_id,
+        tmp_company_all_df.company_name,
+        tmp_company_all_df.ipo_company,
+        tmp_company_all_df.regcap_amount,
+        tmp_company_all_df.realcap_amount,
+        tmp_company_all_df.regcap_currency,
+        tmp_company_all_df.realcap_currency,
+        tmp_company_all_df.esdate,
+        tmp_company_all_df.address,
+        tmp_company_all_df.company_enterprise_status,
+        tmp_company_all_df.company_province,
+        tmp_company_all_df.company_county,
+        tmp_company_all_df.company_industry,
+        tmp_company_all_df.company_companytype,
+        tmp_company_all_df.company_gis_lat,
+        tmp_company_all_df.company_gis_lon
     ).cache()
 
     # 数据清洗, 该中间结果很重要，是后续构造节点的关键,因此需要落地
