@@ -280,6 +280,33 @@ def spark_data_flow():
         '''
     )
     
+    tmp_company_7_df = spark.sql(
+        '''
+        SELECT 
+        bbd_qyxx_id,
+        company_name,
+        '-' ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' company_enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_companytype,
+        '0' company_gis_lat,
+        '0' company_gis_lon
+        FROM 
+        dw.name
+        WHERE
+        dt='{version}'  
+        '''.format(database=DATABASE,
+                   version=UNIQUE_NAME_VERSION)
+    )
+    
     # 根据bbd_qyxx_id来源的不同，赋予不同的权重，已去重
     tmp_company_all_df = tmp_company_1_df.withColumn(
         'weight', fun.udf(lambda x: 0, tp.IntegerType())('bbd_qyxx_id')
@@ -301,6 +328,10 @@ def spark_data_flow():
         )
     ).union(
         tmp_company_6_df.withColumn(
+            'weight', fun.udf(lambda x: 2, tp.IntegerType())('bbd_qyxx_id')
+        )
+    ).union(
+        tmp_company_7_df.withColumn(
             'weight', fun.udf(lambda x: 1, tp.IntegerType())('bbd_qyxx_id')
         )
     ).withColumn(
@@ -364,8 +395,10 @@ def spark_data_flow():
         filter_comma_udf('bbd_qyxx_id')
     ).where(
         filter_length_udf('bbd_qyxx_id')
+    ).replace(
+        ',', u'\uff0c'
     ).where(
-        filter_comma_udf('company_name')
+        raw_basic_df.company_name != '-'
     ).dropDuplicates(
         ['bbd_qyxx_id']
     ).cache()
@@ -685,6 +718,7 @@ if __name__ == '__main__':
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     DATABASE = sys.argv[3]
+    UNIQUE_NAME_VERSION = '20180125'
     FILE_NAME = 'company_county_mapping_20180103.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     IN_PATH_TWO = '/user/wanxiang/step_three/'
