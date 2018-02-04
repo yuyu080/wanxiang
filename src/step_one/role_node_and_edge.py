@@ -47,6 +47,21 @@ def get_id(src, des, relation, position):
         return role_id.hexdigest()
     except:
         return ''
+        
+def get_branch_id(regno_or_creditcode, 
+                  regno, 
+                  name):
+    '''
+    生成规则：md5（起点name+终点id+关系类型+关系名）
+    由于源ID有中文，因此这里需要做容错
+    '''
+    try:
+        role_id = hashlib.md5(regno_or_creditcode.encode('utf-8') + 
+                              regno.encode('utf-8') +
+                              name.encode('utf-8'))
+        return role_id.hexdigest()
+    except:
+        return ''
 
 def is_invest(col):
     if 'INVEST' in col:
@@ -77,6 +92,7 @@ def spark_data_flow():
     get_isinvest_label_udf = fun.udf(
         partial(get_role_label, 'Isinvest'), tp.StringType())
     get_id_udf = fun.udf(get_id, tp.StringType())
+    get_branch_id_udf = fun.udf(get_branch_id, tp.StringType())
     get_isinvest_id_udf = fun.udf(
         partial(get_id, relation='Isinvest', position=''), tp.StringType())
     is_invest_udf = fun.udf(is_invest, tp.BooleanType())
@@ -203,7 +219,10 @@ def spark_data_flow():
         company_name c_name,
         'BRANCH' bc_relation,
         '分支机构' role_name,
-        '-' ratio
+        '-' ratio,
+        regno_or_creditcode,
+        regno, 
+        name
         FROM
         dw.qyxx_fzjg_merge
         WHERE
@@ -228,7 +247,12 @@ def spark_data_flow():
     ).where(
         filter_comma_udf('c_name')
     ).select(
-        'b',
+        fun.when(
+            raw_qyxx_fzjg_merge.b == 'None',
+            get_branch_id_udf('regno_or_creditcode', 'regno', 'name')
+        ).otherwise(
+            raw_qyxx_fzjg_merge.b        
+        ).alias('b'),
         'b_name',
         get_id_udf('b_name', 'c', 
                    'bc_relation', 'role_name').alias('bbd_role_id:ID'),
