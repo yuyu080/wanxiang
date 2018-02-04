@@ -131,7 +131,7 @@ def raw_spark_data_flow():
        ,'domain_name_website_info'
        ,'qyxg_debet'
        ,'overseas_investment'
-       ,'qyxx_nb_jbxx'
+       ,'qyxx_annual_report_jbxx'
     ]
     
     #需要被剔除的表(节点)
@@ -608,7 +608,7 @@ if __name__ == '__main__':
     FORMAT_RELATION_VERSION = datetime.datetime.strptime(
         RELATION_VERSION, '%Y%m%d').strftime('%Y-%m-%d')
     
-    FILE_NAME = 'raw_graph_event_col_20180103.data'
+    FILE_NAME = 'raw_graph_event_col_20180204.data'
     IN_PATH = '/user/wanxiang/inputdata/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
