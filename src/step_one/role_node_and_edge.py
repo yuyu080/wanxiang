@@ -233,8 +233,6 @@ def spark_data_flow():
     )
     
     tid_qyxx_fzjg_merge = raw_qyxx_fzjg_merge.where(
-        "b != 'None'"
-    ).where(
         filter_comma_udf('b')
     ).where(
         filter_chinaese_udf('b')
