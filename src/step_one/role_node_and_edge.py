@@ -58,7 +58,8 @@ def get_branch_id(regno_or_creditcode,
     try:
         role_id = hashlib.md5(regno_or_creditcode.encode('utf-8') + 
                               regno.encode('utf-8') +
-                              name.encode('utf-8'))
+                              name.encode('utf-8') +
+                              "qyxx_fzjg_merge")
         return role_id.hexdigest()
     except:
         return ''
