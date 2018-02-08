@@ -68,22 +68,6 @@ def spark_data_flow():
         获取【法人】关联方
         '''
         #将条数展开
-        basic_df = raw_df.select(
-            fun.explode(
-                add_qyxx_id_udf(
-                    'bbd_qyxx_id', 
-                    string_to_list_udf('qyxx_basic')
-                )
-            ).alias('qyxx_basic')
-        )
-        basic_df.select(    
-            basic_df.qyxx_basic.getItem('bbd_qyxx_id').alias('bbd_qyxx_id'),
-            basic_df.qyxx_basic.getItem('company_name').alias('company_name'),
-            basic_df.qyxx_basic.getItem('frname').alias('frname'),
-            basic_df.qyxx_basic.getItem('frname_id').alias('frname_id'),
-            basic_df.qyxx_basic.getItem('frname_compid').alias('frname_compid')
-        ).createOrReplaceTempView('basic')
-        
         os.system(
             '''
             hadoop fs -rmr {path}/{version}/basic_df
@@ -106,8 +90,10 @@ def spark_data_flow():
             UPPER('legal') relation_type,
             '' position
             FROM
-            basic
-            '''
+            dw.qyxx_basic
+            WHERE
+            dt='{version}'
+            '''.format(version=RELATION_VERSION)
         ).write.parquet(
             '{path}/{version}/basic_df'.format(path=TMP_PATH,
                                                version=RELATION_VERSION))
@@ -116,34 +102,12 @@ def spark_data_flow():
         '''
         获取【董监高】关联方
         '''
-        #将条数展开
-        baxx_df = raw_df.select(
-            fun.explode(
-                add_qyxx_id_udf(
-                    'bbd_qyxx_id', 
-                    string_to_list_udf('qyxx_baxx')
-                )
-            ).alias('qyxx_baxx')
-        )
-        
-        baxx_df.select(
-            baxx_df.qyxx_baxx.getItem('bbd_qyxx_id').alias('bbd_qyxx_id'),
-            baxx_df.qyxx_baxx.getItem('company_name').alias('company_name'),
-            baxx_df.qyxx_baxx.getItem('name').alias('name'),
-            baxx_df.qyxx_baxx.getItem('name_id').alias('name_id'),
-            baxx_df.qyxx_baxx.getItem('type').alias('type'),
-            baxx_df.qyxx_baxx.getItem('position').alias('position'),
-        ).createOrReplaceTempView('baxx')
-        
-        
-        import os
-        
+        #将条数展开     
         os.system(
             '''
             hadoop fs -rmr {path}/{version}/baxx_df
             '''.format(path=TMP_PATH,
                        version=RELATION_VERSION))
-        
         
         spark.sql(
             '''
@@ -161,8 +125,10 @@ def spark_data_flow():
             UPPER(type) relation_type,
             position position
             FROM
-            baxx
-            '''
+            dw.qyxx_baxx
+            WHERE
+            dt='{version}'
+            '''.format(version=RELATION_VERSION)
         ).distinct(
         ).write.parquet(
             '{path}/{version}/baxx_df'.format(path=TMP_PATH,
@@ -173,24 +139,6 @@ def spark_data_flow():
         获取【股东】关联方
         '''
         #将条数展开
-        gdxx_df = raw_df.select(
-            fun.explode(
-                add_qyxx_id_udf(
-                    'bbd_qyxx_id', 
-                    string_to_list_udf('qyxx_gdxx')
-                )
-            ).alias('qyxx_gdxx')
-        )
-        
-        gdxx_df.select(
-            gdxx_df.qyxx_gdxx.getItem('bbd_qyxx_id').alias('bbd_qyxx_id'),
-            gdxx_df.qyxx_gdxx.getItem('company_name').alias('company_name'),
-            gdxx_df.qyxx_gdxx.getItem('shareholder_id').alias('shareholder_id'),
-            gdxx_df.qyxx_gdxx.getItem('shareholder_name').alias('shareholder_name'),
-            gdxx_df.qyxx_gdxx.getItem('shareholder_type').alias('shareholder_type'),
-            gdxx_df.qyxx_gdxx.getItem('name_compid').alias('name_compid'),
-        ).createOrReplaceTempView('gdxx')
-        
         os.system(
             '''
             hadoop fs -rmr {path}/{version}/gdxx_df
@@ -213,20 +161,29 @@ def spark_data_flow():
             UPPER('invest') relation_type,
             shareholder_type position
             FROM
-            gdxx
-            '''
+            dw.qyxx_gdxx
+            WHERE
+            dt='{version}'
+            '''.format(version=RELATION_VERSION)
         ).distinct(
         ).write.parquet(
             '{path}/{version}/gdxx_df'.format(path=TMP_PATH,
                                               version=RELATION_VERSION))
 
     # 触发计算逻辑
-    raw_df = spark.read.json(
-        '{path}/{file_name}'.format(path=IN_PATH,
-                                    file_name=RELATION_FILE_NAME)).cache()   
-    raw_yisi = spark.read.json(
-        '{path}/{file_name}'.format(path=IN_PATH,
-                                    file_name=YISI_FILE_NAME)).cache()   
+    raw_yisi = spark.sql(
+        '''
+        SELECT
+        qyxx_id qyxxId,
+        group_id newGroupId,
+        person_name personName
+        FROM
+        dw.uniq_person_id
+        WHERE
+        dt='{version}'
+        '''.format(version=RELATION_VERSION)
+    )
+    
     get_basic_df()
     get_baxx_df()
     get_gdxx_df()
@@ -248,12 +205,7 @@ def spark_data_flow():
         baxx_df
     ).distinct()
 
-    
-    tid_yisi = raw_yisi.select(
-        raw_yisi.qyxxId,
-        raw_yisi.aSDatas.getField(0).getItem('newGroupId').alias('newGroupId'),
-        raw_yisi.aSDatas.getField(0).getItem('personName').alias('personName'),
-    )
+    tid_yisi = raw_yisi
     
     # 根据疑似数据，替换人的ID
     off_line_relations_with_yisi = off_line_relations.join(
@@ -322,10 +274,9 @@ def get_spark_session():
     
 if __name__ == '__main__':
     # 输入参数
-    RELATION_VERSION = sys.argv[1]
+    XGXX_RELATION = sys.argv[1]
+    RELATION_VERSION = sys.argv[2]
     
-    RELATION_FILE_NAME = 'BUSINESS_REAL_TIME_BBD_HIGGS_QYXX_20180108'
-    YISI_FILE_NAME = 'uniq_person_id_20180108'
     IN_PATH = '/user/wanxiang/20180108wanxiangfromc5/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
