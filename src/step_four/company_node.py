@@ -54,6 +54,10 @@ def spark_data_flow():
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     filter_length_udf = fun.udf(filter_length, tp.BooleanType())
+    filter_tab_udf = fun.udf(
+        lambda x: True if '    ' not in x else False, 
+        tp.BooleanType()
+    )
     get_label_udf = fun.udf(get_label , tp.StringType())
     window = Window.partitionBy(
         ['bbd_qyxx_id']
@@ -336,6 +340,8 @@ def spark_data_flow():
         )
     ).withColumn(
         'row_number', row_number().over(window)
+    ).where(
+        filter_tab_udf('bbd_qyxx_id')
     ).where(
         'row_number == 1'
     )
