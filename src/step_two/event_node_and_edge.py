@@ -64,7 +64,7 @@ def get_standard_date(date):
         return date
 
 def get_xgxx_id(*cols):
-    xgxx_id = hashlib.md5(''.join(map(lambda s: s.encode('utf-8'), cols)))
+    xgxx_id = hashlib.md5(''.join(map(lambda s: s.encode('utf-8'), cols)) + 'uniqueid')
     return xgxx_id.hexdigest()
 
 
