@@ -229,8 +229,6 @@ def spark_data_flow():
         WHERE
         dt='{version}'
         '''.format(version=XGXX_RELATION)
-    ).dropDuplicates(
-        ['b', 'c', 'bc_relation']
     )
     
     tid_qyxx_fzjg_merge = raw_qyxx_fzjg_merge.where(
@@ -260,6 +258,8 @@ def spark_data_flow():
         'bc_relation',
         'role_name',
         'ratio',
+    ).dropDuplicates(
+        ['b', 'c', 'bc_relation']
     )
     
     # 中间结果落地，为了将fzjg中的企业加入company_node中
