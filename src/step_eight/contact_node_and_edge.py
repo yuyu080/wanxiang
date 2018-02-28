@@ -51,7 +51,7 @@ def spark_data_flow():
         FROM
         dw.qyxx_annual_report_jbxx 
         WHERE
-        dt='{version}
+        dt='{version}'
         """.format(version=XGXX_RELATION)
     )
     
