@@ -92,7 +92,12 @@ def step_seven():
     is_success(result_seven, 
                'step_seven', 'time_node_and_edge.py', RELATION_VERSION)
 
-
+def step_eight():
+    result_eight = execute_some_step('step_eight', 'contact_node_and_edge.py', 
+                                     XGXX_RELATION, RELATION_VERSION)
+    is_success(result_eight, 
+               'result_eight', 'contact_node_and_edge.py', RELATION_VERSION)
+    
 def to_local():
     
     def get_file(step_name, file_name):
@@ -117,72 +122,59 @@ def to_local():
         )
     
     
-#==============================================================================
-#     get_file('step_one', 'role_node')
-#     get_file('step_one', 'role_edge')
-#     get_file('step_one', 'isinvest_role_node')
-#     get_file('step_one', 'isinvest_role_edge')
-#     print "step_one sucess !!"
-#==============================================================================
+    get_file('step_one', 'role_node')
+    get_file('step_one', 'role_edge')
+    get_file('step_one', 'isinvest_role_node')
+    get_file('step_one', 'isinvest_role_edge')
+    print "step_one sucess !!"
 
     get_file('step_two', 'event_node')
     get_file('step_two', 'event_edge')
     print "step_two sucess !!"
     
-#==============================================================================
-#     get_file('step_three', 'person_node')
-#     print "step_three sucess !!"
-#==============================================================================
+    get_file('step_three', 'person_node')
+    print "step_three sucess !!"
+    
+    get_file('step_four', 'company_node')
+    print "step_four sucess !!"
+    
+    get_file('step_five', 'region_node')
+    get_file('step_five', 'region_edge')
+    print "step_five sucess !!"
+    
+    get_file('step_six', 'industry_node')
+    get_file('step_six', 'industry_edge')
+    print "step_six sucess !!"
+    
+    get_file('step_seven', 'time_node')
+    get_file('step_seven', 'time_edge')
+    print "step_seven sucess !!"
     
 #==============================================================================
-#     get_file('step_four', 'company_node')
-#     print "step_four sucess !!"
-#==============================================================================
-    
-#==============================================================================
-#     get_file('step_five', 'region_node')
-#     get_file('step_five', 'region_edge')
-#     print "step_five sucess !!"
-#     
-#     get_file('step_six', 'industry_node')
-#     get_file('step_six', 'industry_edge')
-#     print "step_six sucess !!"
-#==============================================================================
-    
-#==============================================================================
-#     get_file('step_seven', 'time_node')
-#     get_file('step_seven', 'time_edge')
-#     print "step_seven sucess !!"
+#     get_file('step_eight', 'phone_node')  
+#     get_file('step_eight', 'phone_edge')
+#     get_file('step_eight', 'email_node')
+#     get_file('step_eight', 'email_edge')
+#     print "step_eight sucess !!"
 #==============================================================================
     
 def run():
 
     # 实时关联方与历史关联方存在不同的库，因此需要单独区分
     # 实时关联方需要新增一个流程，及解析关联方数据
-#==============================================================================
-#     if not IS_HISTORY:
-#         step_zero()
-#==============================================================================
+    if not IS_HISTORY:
+        step_zero()
 
 #==============================================================================
 #     step_one()
-#==============================================================================
-    step_two()
-#==============================================================================
+#     step_two()
 #     step_three()
 #==============================================================================
-#==============================================================================
-#     step_four()
-#==============================================================================
-#==============================================================================
-#     step_five()
-#==============================================================================
-#==============================================================================
-#     step_six()
-#==============================================================================
-#==============================================================================
-#     step_seven()
-#==============================================================================
+    step_four()
+    step_five()
+    step_six()
+    step_seven()
+    step_eight()
     to_local()
     
 if __name__ == '__main__':
@@ -190,9 +182,9 @@ if __name__ == '__main__':
     # 本地项目路径
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20180108'
-    XGXX_RELATION = '20180108'
+    RELATION_VERSION = '20180304'
+    XGXX_RELATION = '20180305'
     
-    IS_HISTORY=False
+    IS_HISTORY=True
     
     run()

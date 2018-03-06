@@ -46,6 +46,12 @@ def get_label(x):
     except:
         return ''
     
+def filter_tab(x):
+    try:
+        return True if '    ' not in x else False
+    except:
+        return False
+    
         
 def spark_data_flow():
     '''
@@ -55,7 +61,7 @@ def spark_data_flow():
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     filter_length_udf = fun.udf(filter_length, tp.BooleanType())
     filter_tab_udf = fun.udf(
-        lambda x: True if '    ' not in x else False, 
+        filter_tab, 
         tp.BooleanType()
     )
     get_label_udf = fun.udf(get_label , tp.StringType())
