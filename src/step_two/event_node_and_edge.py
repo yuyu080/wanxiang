@@ -439,7 +439,7 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
     raw_event_df.where(
         raw_event_df.event_time <= FORMAT_RELATION_VERSION
     ).coalesce(
-        300
+        1000
     ).write.parquet(
         ("{path}/"
          "raw_event_df/{version}"
