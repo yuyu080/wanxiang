@@ -17,7 +17,7 @@ from pyspark.sql import functions as fun, types as tp
 
 def filter_comma(col):
     '''ID中逗号或为空值，则将该记录删除'''
-    if not col or ',' in col or u'\uff0c' in col:
+    if not col or ',' in col or u'\uff0c' in col or '"' in col or '\\' in col:
         return False
     else:
         return True
@@ -76,7 +76,7 @@ def spark_data_flow():
     ).cache()
     
     prd_phone_node_df = tid_nb_df.select(
-        tid_nb_df.phone.alias('phone:ID'),
+        tid_nb_df.phone.alias('bbd_contact_id:ID'),
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),
         get_phone_label_udf('phone').alias(':LABEL')
@@ -90,7 +90,7 @@ def spark_data_flow():
     ).distinct()
     
     prd_email_node_df =  tid_nb_df.select(
-        tid_nb_df.email.alias('email:ID'),
+        tid_nb_df.email.alias('bbd_contact_id:ID'),
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),
         get_email_label_udf('email').alias(':LABEL')

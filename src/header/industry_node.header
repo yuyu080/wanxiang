@@ -1,0 +1,1 @@
+industry_code:ID,name,company_num:int,create_time:long,update_time:long,:LABEL

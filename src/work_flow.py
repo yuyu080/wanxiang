@@ -169,10 +169,10 @@ def run():
 #     step_one()
 #     step_two()
 #     step_three()
+#     step_four()
+#     step_five()
+#     step_six()
 #==============================================================================
-    step_four()
-    step_five()
-    step_six()
     step_seven()
     step_eight()
     to_local()
