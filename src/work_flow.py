@@ -150,13 +150,11 @@ def to_local():
     get_file('step_seven', 'time_edge')
     print "step_seven sucess !!"
     
-#==============================================================================
-#     get_file('step_eight', 'phone_node')  
-#     get_file('step_eight', 'phone_edge')
-#     get_file('step_eight', 'email_node')
-#     get_file('step_eight', 'email_edge')
-#     print "step_eight sucess !!"
-#==============================================================================
+    get_file('step_eight', 'phone_node')  
+    get_file('step_eight', 'phone_edge')
+    get_file('step_eight', 'email_node')
+    get_file('step_eight', 'email_edge')
+    print "step_eight sucess !!"
     
 def run():
 
@@ -165,14 +163,12 @@ def run():
     if not IS_HISTORY:
         step_zero()
 
-#==============================================================================
-#     step_one()
-#     step_two()
-#     step_three()
-#     step_four()
-#     step_five()
-#     step_six()
-#==============================================================================
+    step_one()
+    step_two()
+    step_three()
+    step_four()
+    step_five()
+    step_six()
     step_seven()
     step_eight()
     to_local()
