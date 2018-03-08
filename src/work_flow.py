@@ -149,12 +149,14 @@ def to_local():
     get_file('step_seven', 'time_node')
     get_file('step_seven', 'time_edge')
     print "step_seven sucess !!"
-    
-    get_file('step_eight', 'phone_node')  
-    get_file('step_eight', 'phone_edge')
-    get_file('step_eight', 'email_node')
-    get_file('step_eight', 'email_edge')
-    print "step_eight sucess !!"
+#==============================================================================
+#     
+#     get_file('step_eight', 'phone_node')  
+#     get_file('step_eight', 'phone_edge')
+#     get_file('step_eight', 'email_node')
+#     get_file('step_eight', 'email_edge')
+#     print "step_eight sucess !!"
+#==============================================================================
     
 def run():
 
@@ -178,9 +180,9 @@ if __name__ == '__main__':
     # 本地项目路径
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20180304'
+    RELATION_VERSION = '20180305'
     XGXX_RELATION = '20180305'
     
-    IS_HISTORY=True
+    IS_HISTORY=False
     
     run()
