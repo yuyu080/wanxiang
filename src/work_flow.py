@@ -149,14 +149,12 @@ def to_local():
     get_file('step_seven', 'time_node')
     get_file('step_seven', 'time_edge')
     print "step_seven sucess !!"
-#==============================================================================
-#     
-#     get_file('step_eight', 'phone_node')  
-#     get_file('step_eight', 'phone_edge')
-#     get_file('step_eight', 'email_node')
-#     get_file('step_eight', 'email_edge')
-#     print "step_eight sucess !!"
-#==============================================================================
+    
+    get_file('step_eight', 'phone_node')  
+    get_file('step_eight', 'phone_edge')
+    get_file('step_eight', 'email_node')
+    get_file('step_eight', 'email_edge')
+    print "step_eight sucess !!"
     
 def run():
 
@@ -178,6 +176,9 @@ def run():
 if __name__ == '__main__':
     
     # 本地项目路径
+    #  1、注意是否是计算历史数据，IS_HISTORY很关键，涉及到使用不同的数据库
+    #  2、如果是离线计算‘实时图库’：XGXX_RELATION为版本号，且RELATION_VERSION=XGXX_RELATION
+    #  3、如果是离线计算‘历史图库’：RELATION_VERSION为版本号，XGXX_RELATION取最新的版本
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
     RELATION_VERSION = '20180305'

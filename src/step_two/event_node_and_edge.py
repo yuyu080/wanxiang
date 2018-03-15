@@ -207,27 +207,25 @@ def tmp_spark_data_flow(TABLE_DICT):
     '''
     get_xgxx_id_udf = fun.udf(get_xgxx_id, tp.StringType())
     
-    def get_additional_xgxx_df(version, table_name, columns):
+    def get_additional_xgxx_df(version, table_name):
         raw_df = spark.sql(
             """
             SELECT
             '' id,
+            bbd_qyxx_id,
+            bbd_unique_id,
             '{table_name}' bbd_table,
             0 id_type,
             dt,
             CAST({event_time} AS string) event_time,
-            {col}
+            company_name
             FROM
             dw.{table_name}
             WHERE
             dt='{version}'
             """.format(version=version, 
                        table_name=table_name, 
-                       event_time=TABLE_DICT.get(table_name, ''),
-                       col=','.join(
-                           map(lambda s: "cast({0} as string) {0}".format(s), 
-                               columns))
-                      )
+                       event_time=TABLE_DICT.get(table_name, ''))
         ).fillna(
             ''
         ).replace(
@@ -239,7 +237,7 @@ def tmp_spark_data_flow(TABLE_DICT):
         tid_df = raw_df.select(
             'id',
             'bbd_qyxx_id',
-            get_xgxx_id_udf(*columns).alias('bbd_xgxx_id'),
+            'bbd_unique_id',
             'bbd_table',
             'id_type',
             'dt',
@@ -251,47 +249,23 @@ def tmp_spark_data_flow(TABLE_DICT):
     
     
     # qyxx_bgxx
-    qyxx_bgxx_columns = ['bbd_qyxx_id', 'company_name','change_date', 
-                         'change_items', 'content_before_change', 
-                         'content_after_change']
-    tmp_xgxx_relation_df_1 = get_additional_xgxx_df(XGXX_RELATION, 'qyxx_bgxx', 
-                                                    qyxx_bgxx_columns)
+    tmp_xgxx_relation_df_1 = get_additional_xgxx_df(XGXX_RELATION, 'qyxx_bgxx')
     
     # qyxx_liquidation
-    qyxx_liquidation_columns = ['bbd_qyxx_id', 'company_name', 'ligentity', 
-                                'ligprincipal', 'liqmen', 'ligst', 
-                                'ligenddate', 'debttranee', 'claimtranee']
     tmp_xgxx_relation_df_2 = get_additional_xgxx_df(XGXX_RELATION, 
-                                                    'qyxx_liquidation', 
-                                                    qyxx_liquidation_columns)
+                                                    'qyxx_liquidation')
     
     # qyxx_sharesfrost
-    qyxx_sharesfrost_columns = ['bbd_qyxx_id', 'company_name', 'frodocno', 
-                                'froauth', 'frofrom', 'froto', 'froam', 
-                                'thawauth', 'thawdocno', 'thawdate']
     tmp_xgxx_relation_df_3 = get_additional_xgxx_df(XGXX_RELATION, 
-                                                    'qyxx_sharesfrost', 
-                                                    qyxx_sharesfrost_columns)
+                                                    'qyxx_sharesfrost')
     
     # qyxx_sharesimpawn
-    qyxx_sharesimpawn_columns = ['bbd_qyxx_id', 'company_name' , 'imporg', 
-                                 'imporgtype', 'impam', 'imponrecdate', 
-                                 'impexaeep', 'impsandate', 'impto', 
-                                 'morregcno', 'imporg_idno', 'pledgee',
-                                 'pledgee_idno', 'impstate', 'impsituation']
     tmp_xgxx_relation_df_4 = get_additional_xgxx_df(XGXX_RELATION, 
-                                                    'qyxx_sharesimpawn', 
-                                                    qyxx_sharesimpawn_columns)
+                                                    'qyxx_sharesimpawn')
     
     # qyxx_mordetail
-    qyxx_mordetail_columns = ['bbd_qyxx_id', 'company_name', 'morreg_id', 
-                              'mortgagor', 'more', 'regorg', 'regidate', 
-                              'mortype', 'morregcno', 'appregrea', 
-                              'priclaseckind', 'priclasecam', 'pefperform', 
-                              'pefperto', 'candate', 'guaname', 'guadetali']
     tmp_xgxx_relation_df_5 = get_additional_xgxx_df(XGXX_RELATION, 
-                                                    'qyxx_mordetail', 
-                                                    qyxx_mordetail_columns)
+                                                    'qyxx_mordetail')
     
     # black_list
     # 由于具有单独的属性，因此独立计算
@@ -311,7 +285,7 @@ def tmp_spark_data_flow(TABLE_DICT):
     ).fillna(
         0
     ).dropDuplicates(
-        ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
+        ['bbd_qyxx_id', 'bbd_unique_id', 'bbd_table']
     )
     
     os.system(

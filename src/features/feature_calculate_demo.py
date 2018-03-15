@@ -10,7 +10,7 @@ def get_graph_data_2(driver, bbd_qyxx_id):
         with session.begin_transaction() as tx:
             nodes = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE*1..4]-(b) 
                 with nodes(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
@@ -18,7 +18,7 @@ def get_graph_data_2(driver, bbd_qyxx_id):
                 bbd_qyxx_id=bbd_qyxx_id)
             edges = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH|DISHONESTY|XGXX_SHANGBIAO|SHGY_ZHONGBJG|SHGY_ZHAOBJG|QYXX_ZHUANLI|QYXG_QYQS|QYXG_JYYC|KTGG|DCOS|RJZZQ|RMFYGG|RECRUIT|TDDKGS|TDDY|XZCF|ZGCPWSW|ZHIXING|ZPZZQ*1..4]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE*1..4]-(b) 
                 with relationships(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
@@ -33,9 +33,9 @@ def format_graph_data(result1, result2):
     def init_graph(edge_list, node_list, is_directed=0):
         #网络初始化
         if is_directed == 1:
-            G = nx.DiGraph()
+            G = nx.MultiDiGraph()
         elif is_directed == 2:
-            G = nx.Graph()
+            G = nx.MultiGraph()
 
         #增加带属性的节点
         for node in node_list:
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     
     uri = 'bolt://10.28.102.32:7687'
     my_driver = GraphDatabase.driver(uri, auth=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB"))
-    bbd_qyxx_id = '2eb36cee3b8c4e02a823e3641203f54e'
+    bbd_qyxx_id = '01ed5702003946f283ba06631642d1c8'
     
     # 生成图，同时返回节点与边的列表
     nodes, edges = get_graph_data_2(my_driver, bbd_qyxx_id)
