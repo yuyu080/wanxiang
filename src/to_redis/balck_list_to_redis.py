@@ -87,7 +87,7 @@ def run():
     pipe = r.pipeline(transaction=True)
     
     for each_id in black_qyxx_id:
-        r.sadd('wx_graph_black_set', each_id)
+        pipe.sadd('wx_graph_black_set', each_id)
     
     pipe.execute()
     
