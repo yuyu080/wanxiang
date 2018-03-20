@@ -73,8 +73,6 @@ def spark_data_flow():
         filter_comma_udf('phone')
     ).where(
         filter_comma_udf('email')
-    ).where(
-        filter_comma_udf('year')
     ).cache()
     
     prd_phone_node_df = tid_nb_df.select(
