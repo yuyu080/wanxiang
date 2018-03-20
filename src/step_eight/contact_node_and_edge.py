@@ -73,6 +73,8 @@ def spark_data_flow():
         filter_comma_udf('phone')
     ).where(
         filter_comma_udf('email')
+    ).where(
+        filter_comma_udf('year')
     ).cache()
     
     prd_phone_node_df = tid_nb_df.select(
@@ -85,6 +87,7 @@ def spark_data_flow():
     prd_phone_edge_df = tid_nb_df.select(
         tid_nb_df.bbd_qyxx_id.alias(':START_ID'),
         tid_nb_df.phone.alias(':END_ID'),
+        tid_nb_df.year.alias('year'),
         fun.unix_timestamp().alias('create_time:long'),
         get_phone_type_udf('phone').alias(':TYPE')
     ).distinct()
@@ -99,6 +102,7 @@ def spark_data_flow():
     prd_email_edge_df = tid_nb_df.select(
         tid_nb_df.bbd_qyxx_id.alias(':START_ID'),
         tid_nb_df.email.alias(':END_ID'),
+        tid_nb_df.year.alias('year'),
         fun.unix_timestamp().alias('create_time:long'),
         get_email_type_udf('email').alias(':TYPE')
     ).distinct()
