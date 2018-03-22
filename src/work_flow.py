@@ -124,8 +124,10 @@ def to_local():
     
     get_file('step_one', 'role_node')
     get_file('step_one', 'role_edge')
-    get_file('step_one', 'isinvest_role_node')
-    get_file('step_one', 'isinvest_role_edge')
+#==============================================================================
+#     get_file('step_one', 'isinvest_role_node')
+#     get_file('step_one', 'isinvest_role_edge')
+#==============================================================================
     print "step_one sucess !!"
 
     get_file('step_two', 'event_node')
@@ -181,8 +183,8 @@ if __name__ == '__main__':
     #  3、如果是离线计算‘历史图库’：RELATION_VERSION为版本号，XGXX_RELATION取最新的版本
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20180305'
-    XGXX_RELATION = '20180305'
+    RELATION_VERSION = '20180320'
+    XGXX_RELATION = '20180320'
     
     IS_HISTORY=False
     
