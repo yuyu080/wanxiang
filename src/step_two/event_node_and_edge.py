@@ -465,7 +465,7 @@ def prd_spark_data_flow():
         tmp_xgxx_relation_df.select(
             tmp_xgxx_relation_df['id'],
             tmp_xgxx_relation_df.bbd_qyxx_id,
-            tmp_xgxx_relation_df.bbd_xgxx_id,
+            tmp_xgxx_relation_df.bbd_unique_id,
             tmp_xgxx_relation_df.bbd_table,
             tmp_xgxx_relation_df.id_type,
             tmp_xgxx_relation_df.dt,
