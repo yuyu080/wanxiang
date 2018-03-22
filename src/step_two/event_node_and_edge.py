@@ -154,36 +154,7 @@ def raw_spark_data_flow():
     
     #需要被剔除的表(节点)
     filter_list = [
-        'qyxg_wdzj',
-        'qyxg_wdty',
-        'qyxg_jijin_relate',
-        'qyxg_jijin_simu',
-        'qyxg_exchange',
-        'jijinye_info',
-        'qyxg_platform_data',
-        'qyxg_zhongchou',
-        'qyxx_miit_jlzzdwmd',
-        'qyxx_jzsgxkz',
-        'qyxx_hzp_pro_prod_cert',
-        'qyxx_tk',
-        'qyxx_enterprisequalificationforeign',
-        'qyxx_gcjljz',
-        'ssgs_zjzx',
-        'qyxx_nyscqyzzcx',
-        'qyxx_medi_pro_prod_cert',
-        'qyxx_medi_jy_prod_cert',
-        'qyxx_industrial_production_permit',
-        'qyxx_haiguanzongshu',
-        'qyxx_gmpauth_prod_cert',
-        'qyxx_food_prod_cert',
-        'qyxx_ck',
-        'qyxg_yuqing_main_hj',
-        'qyxx_zhongdeng',
-        'zuzhijigoudm',
-        'qyxg_zzjgdm',
-        'qyxx_zhuanli',
-        'black_list',
-        'qyxg_yuqing_main'
+        ''
     ]
     
     # 表+时间字段
