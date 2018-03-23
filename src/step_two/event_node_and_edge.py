@@ -4,6 +4,7 @@
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
+--driver-memory 15g \
 --queue project.wanxiang \
 event_node_and_edge.py {xgxx_relation} {relation_version}
 '''
@@ -114,7 +115,6 @@ def raw_spark_data_flow():
        ,'shgy_zhongbjg'
        ,'tddkgs'
        ,'tddy'
-       ,'tdzr'
        ,'xgxx_shangbiao'
        ,'xzcf'
        ,'zgcpwsw'
