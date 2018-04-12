@@ -64,9 +64,9 @@ def get_standard_date(date):
     except:
         return date
 
-def get_xgxx_id(*cols):
-    xgxx_id = hashlib.md5(''.join(map(lambda s: s.encode('utf-8'), cols)) + 'uniqueid')
-    return xgxx_id.hexdigest()
+def get_xgxx_id(bbd_qyxx_id, bbd_unique_id):
+    xgxx_id = '{}_{}'.format(bbd_qyxx_id, bbd_unique_id)
+    return xgxx_id
 
 
 def raw_spark_data_flow():
@@ -208,7 +208,8 @@ def tmp_spark_data_flow(TABLE_DICT):
         tid_df = raw_df.select(
             'id',
             'bbd_qyxx_id',
-            'bbd_unique_id',
+            get_xgxx_id_udf('bbd_qyxx_id',
+                            'bbd_unique_id').alias('bbd_xgxx_id'),
             'bbd_table',
             'id_type',
             'dt',
@@ -256,7 +257,7 @@ def tmp_spark_data_flow(TABLE_DICT):
     ).fillna(
         0
     ).dropDuplicates(
-        ['bbd_qyxx_id', 'bbd_unique_id', 'bbd_table']
+        ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
     )
     
     os.system(
@@ -436,7 +437,7 @@ def prd_spark_data_flow():
         tmp_xgxx_relation_df.select(
             tmp_xgxx_relation_df['id'],
             tmp_xgxx_relation_df.bbd_qyxx_id,
-            tmp_xgxx_relation_df.bbd_unique_id,
+            tmp_xgxx_relation_df.bbd_xgxx_id,
             tmp_xgxx_relation_df.bbd_table,
             tmp_xgxx_relation_df.id_type,
             tmp_xgxx_relation_df.dt,
