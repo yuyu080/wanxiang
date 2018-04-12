@@ -26,19 +26,6 @@ def analysis(col):
     except:
         return None
 
-def add_qyxx_id(qyxx_id, qyxx_bgxx):
-    '''
-    将id加到bgxx的每一条数据中
-    '''
-    try:
-        if len(qyxx_bgxx) > 0:
-            return [dict(each_info, 
-                         **{'bbd_qyxx_id' : qyxx_id}) 
-                    for each_info in qyxx_bgxx]
-        else:
-            return None
-    except:
-        return None
     
 def get_id():
     '''
@@ -55,13 +42,18 @@ def repalce_null_value(col):
     except:
         return None
 
+def filter_bad_case(relation_type, des_id):
+    '''过滤把企业当做自然人的错误节点'''
+    if relation_type != 'INVEST' and relation_type != 'LEGAL' and des_id:
+        return False
+    else:
+        return True
+
 def spark_data_flow():
     string_to_list_udf = fun.udf(
         analysis, 
         tp.ArrayType(tp.MapType(tp.StringType(), tp.StringType())))
-    add_qyxx_id_udf = fun.udf(
-        add_qyxx_id, 
-        tp.ArrayType(tp.MapType(tp.StringType(), tp.StringType())))
+    filt = fun.udf(filter_bad_case, tp.BooleanType())
     
     def get_basic_df():
         '''
@@ -178,7 +170,7 @@ def spark_data_flow():
         group_id newGroupId,
         person_name personName
         FROM
-        dw.uniq_person_id
+        dw.uniq_person_id_v2
         WHERE
         dt='{version}'
         '''.format(version=RELATION_VERSION)
@@ -205,13 +197,32 @@ def spark_data_flow():
         baxx_df
     ).distinct()
 
+    # 剔除source中的企业节点
+    off_line_relations.select(
+        off_line_relations.destination_bbd_id
+    ).distinct().write.parquet(
+        '{path}/{version}/tmp_off_line_companys'.format(path=TMP_PATH,
+                                                        version=RELATION_VERSION))
+    tmp_off_line_relations = spark.read.parquet(
+        '{path}/{version}/tmp_off_line_companys'.format(path=TMP_PATH,
+                                                        version=RELATION_VERSION))
+    
+    tid_off_line_relations = off_line_relations.join(
+        tmp_off_line_relations,
+        off_line_relations.source_bbd_id == tmp_off_line_relations.destination_bbd_id,
+        'left_outer'
+    ).where(
+        filt(off_line_relations.relation_type, 
+             tmp_off_line_relations.destination_bbd_id)
+    )
+    
     tid_yisi = raw_yisi
     
     # 根据疑似数据，替换人的ID
-    off_line_relations_with_yisi = off_line_relations.join(
+    off_line_relations_with_yisi = tid_off_line_relations.join(
         tid_yisi,
-        [off_line_relations.source_name == tid_yisi.personName, 
-         off_line_relations.destination_bbd_id == tid_yisi.qyxxId],
+        [tid_off_line_relations.source_name == tid_yisi.personName, 
+         tid_off_line_relations.destination_bbd_id == tid_yisi.qyxxId],
         'left_outer'
     ).select(
         'company_name',
@@ -221,7 +232,7 @@ def spark_data_flow():
             tid_yisi.newGroupId.isNotNull(),
             tid_yisi.newGroupId.alias('source_bbd_id')
         ).otherwise(
-            off_line_relations.source_bbd_id
+            tid_off_line_relations.source_bbd_id
         ).alias('source_bbd_id'),
         'source_degree',
         'source_isperson',
