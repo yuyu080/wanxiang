@@ -42,9 +42,14 @@ def repalce_null_value(col):
     except:
         return None
 
-def filter_bad_case(relation_type, des_id):
-    '''过滤把企业当做自然人的错误节点'''
-    if relation_type != 'INVEST' and relation_type != 'LEGAL' and des_id:
+def filter_bad_case(relation_type, des_id, source_isperson):
+    '''
+    过滤把企业当做自然人的错误节点: 
+    假如一个节点在baxx表中，同时该节点的标签本为Company，那么就将这个关系过滤
+    '''
+    if (relation_type != 'INVEST' and 
+            relation_type != 'LEGAL' and 
+            des_id and source_isperson):
         return False
     else:
         return True
@@ -198,8 +203,13 @@ def spark_data_flow():
     ).distinct()
 
     # 剔除source中的企业节点
+    os.system(
+        '''
+        hadoop fs -rmr {path}/{version}/tmp_off_line_companys
+        '''.format(path=TMP_PATH,
+                   version=RELATION_VERSION))
     off_line_relations.select(
-        off_line_relations.destination_bbd_id
+        off_line_relations.destination_bbd_id.alias('tmp_company_name')
     ).distinct().write.parquet(
         '{path}/{version}/tmp_off_line_companys'.format(path=TMP_PATH,
                                                         version=RELATION_VERSION))
@@ -209,11 +219,14 @@ def spark_data_flow():
     
     tid_off_line_relations = off_line_relations.join(
         tmp_off_line_relations,
-        off_line_relations.source_bbd_id == tmp_off_line_relations.destination_bbd_id,
+        off_line_relations.source_bbd_id == tmp_off_line_relations.tmp_company_name,
         'left_outer'
     ).where(
         filt(off_line_relations.relation_type, 
-             tmp_off_line_relations.destination_bbd_id)
+             tmp_off_line_relations.tmp_company_name,
+             off_line_relations.source_isperson)
+    ).select(
+        off_line_relations.columns
     )
     
     tid_yisi = raw_yisi
