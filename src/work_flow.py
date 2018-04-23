@@ -185,8 +185,8 @@ if __name__ == '__main__':
     #  3、如果是离线计算‘历史图库’：RELATION_VERSION为版本号，XGXX_RELATION取最新的版本
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20180320'
-    XGXX_RELATION = '20180320'
+    RELATION_VERSION = '20180322'
+    XGXX_RELATION = '20180322'
     
     IS_HISTORY=False
     
