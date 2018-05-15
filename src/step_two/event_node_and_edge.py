@@ -238,9 +238,9 @@ def tmp_spark_data_flow(TABLE_DICT):
     tmp_xgxx_relation_df_5 = get_additional_xgxx_df(XGXX_RELATION, 
                                                     'qyxx_mordetail')
 
-    # qyxg_jyyc
+    # qyxx_jyyc
     tmp_xgxx_relation_df_6 = get_additional_xgxx_df(XGXX_RELATION, 
-                                                    'qyxg_jyyc')
+                                                    'qyxx_jyyc')
     
     # black_list
     # 由于具有单独的属性，因此独立计算
