@@ -101,7 +101,6 @@ def raw_spark_data_flow():
        ,'ktgg'
        ,'overseas_investment'
        ,'qylogo'
-       ,'qyxg_jyyc'
        ,'qyxg_qyqs'
        ,'qyxg_yuqing'
        ,'qyxx_finance_xkz'
@@ -238,6 +237,10 @@ def tmp_spark_data_flow(TABLE_DICT):
     # qyxx_mordetail
     tmp_xgxx_relation_df_5 = get_additional_xgxx_df(XGXX_RELATION, 
                                                     'qyxx_mordetail')
+
+    # qyxg_jyyc
+    tmp_xgxx_relation_df_6 = get_additional_xgxx_df(XGXX_RELATION, 
+                                                    'qyxg_jyyc')
     
     # black_list
     # 由于具有单独的属性，因此独立计算
@@ -252,6 +255,8 @@ def tmp_spark_data_flow(TABLE_DICT):
         tmp_xgxx_relation_df_4
     ).union(
         tmp_xgxx_relation_df_5
+    ).union(
+        tmp_xgxx_relation_df_6    
     ).fillna(
         '0'
     ).fillna(

@@ -9,6 +9,7 @@ from collections import Counter
 
 import redis
 import pandas as pd
+import numpy as np
 from neo4j.v1 import GraphDatabase
 import networkx as nx
 
@@ -35,7 +36,7 @@ def esdate_delta_time(value):
         return delta.days
     except:
         return 0.
-        
+#%%
 
 class Neo4jDriver(object):
     
@@ -43,7 +44,8 @@ class Neo4jDriver(object):
     my_driver = GraphDatabase.driver(
         uri, auth=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB"))
 
-class redisHelper(object):
+
+class RedisHelper(object):
     pool = redis.ConnectionPool(host='10.28.100.24', port=36340, 
                                     password='BBDredis', db=0)
     client = redis.Redis(connection_pool=pool)
@@ -63,6 +65,8 @@ class MyTimer(object):
         self.msecs=self.secs
         if self.verbose:
             print"elapsed time: %f s"%self.msecs
+
+#%%
 
 class RelationFeatureConstruction(object):
     '''
@@ -122,6 +126,7 @@ class RelationFeatureConstruction(object):
         self.gs_rp_2_degree_rel_na_rt = []
         self.gs_rp_2_degree_rel_inv_cnt = 0
         self.gs_rp_1_degree_rel_non_nainsp = set()
+        self.gs_rp_2_degree_rel_non_nainsp = set()
         self.gs_rp_2_degree_rel_patent_cnt = 0
         self.gs_rp_leader_pluralism_cnt = []
         self.gs_rp_1_degree_listed_comp_cnt = 0
@@ -176,7 +181,7 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_1_degree_rel_na_rt(self):
         try:
             count = Counter(self.gs_rp_1_degree_rel_na_rt)
-            return count[True]*1. / (count[True]+count[False])
+            return round(count[True]*1. / (count[True]+count[False]),3)
         except:
             return 0.
     
@@ -195,7 +200,7 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_2_degree_rel_na_rt(self):
         try:
             count = Counter(self.gs_rp_2_degree_rel_na_rt)
-            return count[True]*1. / (count[True]+count[False])
+            return round(count[True]*1. / (count[True]+count[False]),3)
         except:
             return 0.
     
@@ -204,6 +209,9 @@ class RelationFeatureConstruction(object):
     
     def get_gs_rp_1_degree_rel_non_nainsp(self):
         return len(self.gs_rp_1_degree_rel_non_nainsp)
+        
+    def get_gs_rp_2_degree_rel_non_nainsp(self):
+        return len(self.gs_rp_2_degree_rel_non_nainsp)
     
     def get_gs_rp_2_degree_rel_patent_cnt(self, node_attr):
         self.gs_rp_2_degree_rel_patent_cnt += node_attr
@@ -271,7 +279,11 @@ class RelationFeatureConstruction(object):
         return out_invest_degree, out_des_degree
 
     def get_gs_rp_net_cluster_coefficient(self):
-        return nx.cluster.average_clustering(self.graph.to_undirected())
+        try:
+            return round(nx.cluster.average_clustering(
+                            self.graph.to_undirected()),2)
+        except:
+            return 0
     
     def get_gs_rp_core_na_one_ctr_node_cnt(self):
         try:
@@ -343,13 +355,168 @@ class RelationFeatureConstruction(object):
         ]
         
         try:
-            return sum(invest_company_estime) / len(invest_company_estime)
+            return round(sum(invest_company_estime) / 
+                         len(invest_company_estime),3)
         except:
             return 0.         
 
-    
-    def tar_node_por(self, node_attr):
-        pass
+    def get_exe_abnormal_business_risk(self):
+        '''
+        被执行风险，经营异常风险
+        '''
+        dishonesty_num = [0]*4
+        zhixing_num = [0]*4
+        jyyc_num = [0]*4
+        estatus_num = [0]*4
+        for node, pro in self.graph.node(data=True):
+            if self.input_distance[node] == 3:
+                dishonesty_num[3] += pro.get('dishonesty', 0)
+                zhixing_num[3] += pro.get('zhixing', 0)
+                jyyc_num[3] += pro.get('jyyc', 0)
+                estatus_num[3] += 1 if (u'吊销' in pro.get('estatus', '') or
+                                        u'注销' in pro.get('estatus', '')) else 0
+            elif self.input_distance[node] == 2:
+                dishonesty_num[2] += pro.get('dishonesty', 0)
+                zhixing_num[2] += pro.get('zhixing', 0)
+                jyyc_num[2] += pro.get('jyyc', 0)
+                estatus_num[2] += 1 if (u'吊销' in pro.get('estatus', '') or
+                                        u'注销' in pro.get('estatus', '')) else 0
+            elif self.input_distance[node] == 1:
+                dishonesty_num[1] += pro.get('dishonesty', 0)
+                zhixing_num[1] += pro.get('zhixing', 0)
+                jyyc_num[1] += pro.get('jyyc', 0)
+                estatus_num[1] += 1 if (u'吊销' in pro.get('estatus', '') or
+                                        u'注销' in pro.get('estatus', '')) else 0
+            else:
+                dishonesty_num[0] += pro.get('dishonesty', 0)
+                zhixing_num[0] += pro.get('zhixing', 0)
+                jyyc_num[0] += pro.get('jyyc', 0)
+                estatus_num[0] += 1 if (u'吊销' in pro.get('estatus', '') or
+                                        u'注销' in pro.get('estatus', '')) else 0
+                
+        risk1 = np.dot(
+            map(lambda (x,y): x+2*y, zip(zhixing_num, dishonesty_num)),
+            [1., 1/2., 1/3., 1/4.]
+        )
+        
+        risk2 = np.dot(
+            map(lambda (x,y): x+2*y, zip(jyyc_num, estatus_num)),
+            [1., 1/2., 1/3., 1/4.]
+        )
+        
+        return round(risk1,3), round(risk2,3)
+        
+        
+    def get_gs_rp_actual_ctr_risk(self):
+        '''
+        实际控制人风险
+        '''
+        def get_degree_distribution(is_human):
+            if is_human:
+                sets = (self.one_human_node+
+                        self.two_human_node+
+                        self.three_human_node)
+            else:
+                sets = (self.one_company_node+
+                        self.two_company_node+
+                        self.three_company_node)
+            person_out_degree = [v for k,v in self.graph.out_degree(sets)]
+            if not person_out_degree:
+                person_out_degree.append(0)
+            return person_out_degree
+        
+        nature_person_distribution = get_degree_distribution(1)
+        legal_person_distribution = get_degree_distribution(0)
+        
+        nature_max_control = max(nature_person_distribution)
+        legal_max_control = max(legal_person_distribution)
+        nature_avg_control = round(np.average(nature_person_distribution), 2)
+        legal_avg_control = round(np.average(legal_person_distribution), 2)
+        
+        total_legal_num = len(self.one_company_node+
+                              self.two_company_node+
+                              self.three_company_node)
+        
+        risk = round(((
+                    2*(nature_max_control + legal_max_control) + 
+                    (nature_avg_control + legal_avg_control)) /
+                (2*total_legal_num + 0.001)), 2)
+        
+        return risk
+        
+    def get_gs_rp_comp_expend_path_risk(self):
+        '''
+        公司扩张路径风险
+        '''
+        nature_person_distribution = {
+            1: len(self.one_human_node),
+            2: len(self.two_human_node),
+            3: len(self.three_human_node)
+        }
+        legal_person_distribution = {
+            1: len(self.one_company_node),
+            2: len(self.two_company_node),
+            3: len(self.three_company_node)
+        }
+
+        nature_person_num = [
+            nature_person_distribution.get(each_distance, 0)
+            for each_distance in range(1, 4)]
+        legal_person_num = [
+            legal_person_distribution.get(each_distance, 0)
+            for each_distance in range(1, 4)]
+
+        risk = round(np.sum(
+                np.divide(
+                    [
+                        np.divide(
+                            np.sum(nature_person_num[:each_distance]), 
+                            np.sum(legal_person_num[:each_distance]), 
+                            dtype=float)
+                        for each_distance in range(1, 4)], 
+                    np.array([1, 2, 3], dtype=float))), 2)
+
+        return risk
+        
+    def get_gs_rp_rel_center_cluster_risk(self):
+        '''
+        关联方中心集聚风险
+        '''
+        legal_person_shareholder = set()
+        legal_person_subsidiary = set()
+        for each_node in self.one_company_node:
+            for each_edge in self.graph.out_edges(each_node, data=True):
+                if self.tar_id == each_edge[1]:
+                    legal_person_shareholder.add(each_node)
+            for each_edge in self.graph.in_edges(each_node, data=True):
+                if self.tar_id == each_edge[0]:
+                    legal_person_subsidiary.add(each_node)
+        risk = len(legal_person_subsidiary) - len(legal_person_shareholder)
+        
+        return risk
+        
+    def get_gs_rp_rel_strt_stability_risk(self):
+        '''
+        关联方结构稳定风险
+        '''
+        relation_three_num = len(self.three_human_node)+len(self.three_company_node)
+        relation_two_num = len(self.two_human_node)+len(self.two_company_node)
+        relation_one_num = len(self.one_human_node)+len(self.one_company_node)
+        relation_zero_num = 1
+        
+        x = np.array([
+                relation_zero_num, 
+                relation_one_num, 
+                relation_two_num, 
+                relation_three_num]).astype(float)
+        
+        y_2 = x[2] / (x[1]+x[2])
+        y_3 = x[3] / (x[1]+x[2]+x[3])
+        risk = y_2/2 + y_3/3
+
+        return round(risk,3)        
+        
+        
     
     def get_relation_features(self):
         '''
@@ -383,7 +550,7 @@ class RelationFeatureConstruction(object):
                                                                 0))
                     self.get_gs_eb_2_degree_rel_num_exe(pro.get('zhixing', 
                                                                 0))
-                    self.gs_rp_1_degree_rel_non_nainsp.add(pro.get('company_industry',
+                    self.gs_rp_2_degree_rel_non_nainsp.add(pro.get('company_industry',
                                                                    ''))
                     self.get_gs_eb_2_degree_lg_pe_re_rv_num(pro.get('estatus',
                                                                     ''))
@@ -423,6 +590,8 @@ class RelationFeatureConstruction(object):
                     self.get_gs_rp_1_degree_listed_comp_cnt(pro.get('is_ipo',
                                                                     False))
                     self.one_company_node.append(node)
+                    self.gs_rp_1_degree_rel_non_nainsp.add(pro.get('company_industry',
+                                                                   ''))
                     
                 self.get_gs_rp_1_degree_rel_cnt(node)
                 self.gs_rp_1_degree_rel_na_rt.append(pro.get('is_human', False))
@@ -431,7 +600,7 @@ class RelationFeatureConstruction(object):
                 self.get_gs_rp_1_degree_rel_patent_cnt(pro.get('zhuanli',0))
                 
             elif self.input_distance[node] == 0:
-                self.tar_node_por(node)
+                pass
                 
         (gs_rp_leader_pluralism_cnt,
          gs_rp_leader_investment_cnt)= self.get_des_feature()
@@ -443,6 +612,9 @@ class RelationFeatureConstruction(object):
         (gs_rp_exe_work_out_cnt,
          gs_rp_exe_investment_out_cnt) = (gs_rp_leader_pluralism_cnt,
                                           gs_rp_leader_investment_cnt)
+        
+        (gs_eb_exe_risk,
+         gs_eb_abnormal_business_risk) = self.get_exe_abnormal_business_risk()
         
         return {'gs_eb_1_degree_rel_non_ls_num': self.gs_eb_1_degree_rel_non_ls_num,
                 'gs_eb_2_degree_rel_non_ls_num': self.gs_eb_2_degree_rel_non_ls_num,
@@ -465,6 +637,7 @@ class RelationFeatureConstruction(object):
                 'gs_rp_2_degree_rel_na_rt': self.get_gs_rp_2_degree_rel_na_rt(),
                 'gs_rp_2_degree_rel_inv_cnt': self.gs_rp_2_degree_rel_inv_cnt,
                 'gs_rp_1_degree_rel_non_nainsp': self.get_gs_rp_1_degree_rel_non_nainsp(),
+                'gs_rp_2_degree_rel_non_nainsp': self.get_gs_rp_2_degree_rel_non_nainsp(),
                 'gs_rp_2_degree_rel_patent_cnt': self.gs_rp_2_degree_rel_patent_cnt,
                 'gs_rp_leader_pluralism_cnt': gs_rp_leader_pluralism_cnt,
                 'gs_rp_leader_investment_cnt': gs_rp_leader_investment_cnt,
@@ -486,9 +659,17 @@ class RelationFeatureConstruction(object):
                 'gs_rp_invest_out_comp_cnt': self.get_gs_rp_invest_out_comp_cnt(),
                 'gs_rp_legal_rel_cnt': self.get_gs_rp_legal_rel_cnt(),
                 'gs_eo_lagal_person_sh_ext_time': self.get_gs_eo_lagal_person_sh_ext_time(),
-                'gs_eo_3_degree_lg_pr_rel_ext_t': self.get_gs_eo_3_degree_lg_pr_rel_ext_t()
-                }
+                'gs_eo_3_degree_lg_pr_rel_ext_t': self.get_gs_eo_3_degree_lg_pr_rel_ext_t(),
+                'gs_eb_exe_risk': gs_eb_exe_risk,
+                'gs_eb_abnormal_business_risk': gs_eb_abnormal_business_risk,
+                'gs_rp_actual_ctr_risk': self.get_gs_rp_actual_ctr_risk(),
+                'gs_rp_comp_expend_path_risk': self.get_gs_rp_comp_expend_path_risk(),
+                'gs_rp_rel_center_cluster_risk': self.get_gs_rp_rel_center_cluster_risk(),
+                'gs_rp_rel_strt_stability_risk': self.get_gs_rp_rel_strt_stability_risk()            
+                }  
+            
 
+#%%
             
 class DiGraph(object):
     
@@ -634,19 +815,18 @@ class DiGraph(object):
     def is_black(self, bbd_qyxx_ids):
         redis_key = 'tmp_wx_node_{}'.format(self.bbd_qyxx_id)
         for each_qyxx_id in bbd_qyxx_ids:        
-            redisHelper.pipline.sadd(redis_key, 
+            RedisHelper.pipline.sadd(redis_key, 
                                      each_qyxx_id)
-        redisHelper.pipline.execute()
-        black_node = redisHelper.client.sinter(redis_key,
+        RedisHelper.pipline.execute()
+        black_node = RedisHelper.client.sinter(redis_key,
                                                'wx_graph_black_set')
-        redisHelper.client.delete(redis_key)
+        RedisHelper.client.delete(redis_key)
         return black_node
 
 #%%
 class TarNodeFeatureConstruction(object):
     
-    def __init__(self, tar_id, bbd_qyxx_id):
-        self.tar_id = tar_id
+    def __init__(self, bbd_qyxx_id):
         self.bbd_qyxx_id = bbd_qyxx_id
         
         # 指标
@@ -667,7 +847,7 @@ class TarNodeFeatureConstruction(object):
                     match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:XZCF|ZHIXING|DISHONESTY|ZGCPWSW]-(b) 
                     with nodes(p) as np UNWIND np AS x 
                     with DISTINCT x
-                    RETURN x limit 1000
+                    RETURN x limit 2000
                     ''',
                     bbd_qyxx_id=self.bbd_qyxx_id)
                 return nodes
@@ -675,10 +855,15 @@ class TarNodeFeatureConstruction(object):
     def get_tar_features(self):
         nodes = self.get_tar_info()
         
-        xzcf_event_time = []
-        zhixing_event_time = []
-        dishonesty_event_time = []
-        zgcpwsw_event_time = []
+        gs_eb_admin_punish_num_2_y = 0
+        gs_eb_admin_punish_num_1_y = 0 
+        gs_eb_exe_num_2_y = 0
+        gs_eb_exe_num_h_y = 0
+        gs_eb_dishonesty_2_y = 0
+        gs_eb_dishonesty_h_y = 0
+        gs_eb_jud_doc_num_2_y = 0
+        gs_eb_jud_doc_num_h_y = 0
+        gs_eb_jud_doc_num_three_mth = 0
         
         for each_node in nodes:
             if 'Company' in each_node['x'].labels:
@@ -690,58 +875,67 @@ class TarNodeFeatureConstruction(object):
                  self.gs_eb_court_announce_num = each_node['x'].properties.get('rmfygg',0)
                  self.gs_eb_juddoc_num = each_node['x'].properties.get('zgcpwsw',0)
                  
-                 
             if 'Xzcf' in each_node['x'].labels:
-                xzcf_event_time.append(each_node['x'].properties.get('event_time',0))
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    365*2):    
+                    gs_eb_admin_punish_num_2_y += 1
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    30*6):
+                    gs_eb_admin_punish_num_1_y += 1
+                
             if 'Zhixing' in each_node['x'].labels:
-                zhixing_event_time.append(each_node['x'].properties.get('event_time',0))
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    365*2):
+                    gs_eb_exe_num_2_y += 1
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    30*6):
+                    gs_eb_exe_num_h_y += 1
+                    
             if 'Dishonesty' in each_node['x'].labels:
-                dishonesty_event_time.append(each_node['x'].properties.get('event_time',0))
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    365*2):
+                    gs_eb_dishonesty_2_y += 1
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    30*6):
+                    gs_eb_dishonesty_h_y += 1
+                    
             if 'Zgcpwsw' in each_node['x'].labels:
-                zgcpwsw_event_time.append(each_node['x'].properties.get('event_time',0))
-                
-                
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    365*2):
+                    gs_eb_jud_doc_num_2_y += 1
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    30*6):                
+                    gs_eb_jud_doc_num_h_y += 1
+                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                                    30*3):   
+                    gs_eb_jud_doc_num_three_mth += 1
                  
         return {'gs_eo_patent_num': self.gs_eo_patent_num,
                 'gs_eb_exe_num': self.gs_eb_exe_num,
                 'gs_eb_dishonesty_num': self.gs_eb_dishonesty_num,
-                'gs_eb_admin_punish_num_2_y': self.get_range_num(xzcf_event_time, 
-                                                                 365*2),
-                'gs_eb_admin_punish_num_1_y': self.get_range_num(xzcf_event_time,
-                                                                 30*6),
-                'gs_eb_exe_num_2_y': self.get_range_num(zhixing_event_time,
-                                                        365*2),
-                'gs_eb_exe_num_h_y': self.get_range_num(zhixing_event_time,
-                                                        30*6),
-                'gs_eb_dishonesty_2_y': self.get_range_num(dishonesty_event_time,
-                                                           365*2),
-                'gs_eb_dishonesty_h_y': self.get_range_num(dishonesty_event_time,
-                                                           30*6),
-                'gs_eb_jud_doc_num_2_y': self.get_range_num(zgcpwsw_event_time,
-                                                            365*2),
-                'gs_eb_jud_doc_num_h_y': self.get_range_num(zgcpwsw_event_time,
-                                                            30*6),
-                'gs_eb_jud_doc_num_three_mth': self.get_range_num(zgcpwsw_event_time,
-                                                                  30*3),
-                'gs_eb_last_2years_lost_cnt': self.get_range_num(dishonesty_event_time,
-                                                                 365*2),
-                'gs_eb_last_6mons_lost_cnt': self.get_range_num(dishonesty_event_time,
-                                                                30*6),
+                'gs_eb_admin_punish_num_2_y': gs_eb_admin_punish_num_2_y,
+                'gs_eb_admin_punish_num_1_y': gs_eb_admin_punish_num_1_y,
+                'gs_eb_exe_num_2_y': gs_eb_exe_num_2_y,
+                'gs_eb_exe_num_h_y': gs_eb_exe_num_h_y,
+                'gs_eb_dishonesty_2_y': gs_eb_dishonesty_2_y,
+                'gs_eb_dishonesty_h_y': gs_eb_dishonesty_h_y,
+                'gs_eb_jud_doc_num_2_y': gs_eb_jud_doc_num_2_y,
+                'gs_eb_jud_doc_num_h_y': gs_eb_jud_doc_num_h_y,
+                'gs_eb_jud_doc_num_three_mth': gs_eb_jud_doc_num_three_mth,
+                'gs_eb_last_2years_lost_cnt': gs_eb_dishonesty_2_y,
+                'gs_eb_last_6mons_lost_cnt': gs_eb_dishonesty_h_y,
                 'gs_eb_listed_abopn_num': self.gs_eb_listed_abopn_num,
                 'gs_eb_branch_num': self.gs_eb_branch_num,
                 'gs_eb_court_announce_num': self.gs_eb_court_announce_num,
                 'gs_eb_juddoc_num': self.gs_eb_juddoc_num,
-                'gs_eb_execu_num': self.gs_eb_exe_num,
-                
-                                                                
+                'gs_eb_execu_num': self.gs_eb_exe_num
                 }
 
-    def get_range_num(self, tar_event_list, time_range):
-        result = []        
-        for each_event_time in tar_event_list:
-            if event_delta_time(each_event_time) <= time_range:
-                result.append(each_event_time)
-        return len(result)
+    def is_in_range(self, event_time, time_range):
+        if event_delta_time(event_time) <= time_range:
+            return True
+        else:
+            return False
 
 #%%
 
@@ -761,8 +955,7 @@ if __name__ == '__main__':
         relation_feature = RelationFeatureConstruction(prd_graph, bbd_qyxx_id)
         print relation_feature.get_relation_features()
     with MyTimer(True):
-        tar_feature = TarNodeFeatureConstruction(relation_feature.tar_id,
-                                                 bbd_qyxx_id)
+        tar_feature = TarNodeFeatureConstruction(bbd_qyxx_id)
         print tar_feature.get_tar_features()
         
         
