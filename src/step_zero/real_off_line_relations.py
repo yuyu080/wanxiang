@@ -114,7 +114,7 @@ def spark_data_flow():
             name source_name,
             name_id source_bbd_id,
             0 source_degree,
-            1 source_isperson,
+            name_compid source_isperson,
             company_name destination_name,
             bbd_qyxx_id destination_bbd_id,
             0 destination_degree,
