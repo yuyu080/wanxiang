@@ -635,7 +635,7 @@ def spark_data_flow():
             get_some_xgxx_info('qyxg_qyqs'),
             get_some_xgxx_info('qyxx_bgxx'),
             get_some_xgxx_info('recruit'),
-            get_some_xgxx_info('qyxg_jyyc'),
+            get_some_xgxx_info('qyxx_jyyc'),
             get_some_xgxx_info('sfpm_taobao'),
             get_some_xgxx_info('qyxx_liquidation'),
             get_some_xgxx_info('qyxx_sharesfrost'),
