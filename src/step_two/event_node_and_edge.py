@@ -298,7 +298,7 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
                     SELECT
                     '' id,
                     '{table_name}' bbd_table,
-                    id_type,
+                    0 id_type,
                     bbd_xgxx_id,
                     bbd_qyxx_id,
                     dt,
