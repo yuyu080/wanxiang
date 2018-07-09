@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-
+提交命令：
+/opt/spark-2.0.2/bin/spark-submit \
+--master yarn \
+--deploy-mode client \
+--queue project.wanxiang \
+cache_to_redis.py
 
 注意:
 
@@ -9,11 +14,12 @@ http://git.bbdops.com/jiangsong/bbd-quant-wx-rpc/blob/master/index/graph/compayR
 2、由于缓存的是大型企业的指标结果，这里只计算一度关联方
 '''
 
+import os
 import sys
+sys.path.append("/opt/anaconda2c6networkx2/bin/")
 import datetime
 import string
 import math
-import time
 import json
 from itertools import groupby
 from operator import itemgetter
@@ -25,7 +31,6 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 from neo4j.v1 import GraphDatabase
-from pyspark.sql import types as tp, Row
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
 
@@ -1175,6 +1180,8 @@ def run():
     )
 
 if __name__ == '__main__':
+    os.environ['PYSPARK_PYTHON'] = '/opt/anaconda2c6networkx2/bin/python'
+    
     # 输入参数
     SAMPLE_PATH = '/user/wanxiang/inputdata/'
     FILE_NAME = 'company_with_big_relation_20180706'
