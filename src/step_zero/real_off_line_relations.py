@@ -54,11 +54,19 @@ def filter_bad_case(relation_type, des_id, source_isperson):
     else:
         return True
 
+
+def is_concat(destination_bbd_id,source_bbd_id,source_isperson):
+    if source_isperson == '2' and destination_bbd_id is not None and source_bbd_id is not None:
+        return True
+    else:
+        return False
+
 def spark_data_flow():
     string_to_list_udf = fun.udf(
         analysis, 
         tp.ArrayType(tp.MapType(tp.StringType(), tp.StringType())))
     filt = fun.udf(filter_bad_case, tp.BooleanType())
+    is_concat_udf = fun.udf(is_concat, tp.BooleanType())
     
     def get_basic_df():
         '''
@@ -196,42 +204,79 @@ def spark_data_flow():
         '{path}/{version}/baxx_df'.format(path=TMP_PATH,
                                           version=RELATION_VERSION))
 
+    basic_df = basic_df.select(
+        'company_name',
+        'bbd_qyxx_id',
+        'source_name',
+        fun.when(
+            is_concat_udf(basic_df.destination_bbd_id,basic_df.source_bbd_id,basic_df.source_isperson),
+            fun.concat_ws('_',basic_df.destination_bbd_id,basic_df.source_bbd_id).alias('source_bbd_id')
+        ).otherwise(
+            basic_df.source_bbd_id
+        ).alias('source_bbd_id'),
+        'source_degree',
+        'source_isperson',
+        'destination_name',
+        'destination_bbd_id',
+        'destination_degree',
+        'destination_isperson',
+        'relation_type',
+        'position'
+    )
+
+    gdxx_df = gdxx_df.select(
+        'company_name',
+        'bbd_qyxx_id',
+        'source_name',
+        fun.when(
+            is_concat_udf(gdxx_df.destination_bbd_id,gdxx_df.source_bbd_id,gdxx_df.source_isperson),
+            fun.concat_ws('_',gdxx_df.destination_bbd_id,gdxx_df.source_bbd_id).alias('source_bbd_id')
+        ).otherwise(
+            gdxx_df.source_bbd_id
+        ).alias('source_bbd_id'),
+        'source_degree',
+        'source_isperson',
+        'destination_name',
+        'destination_bbd_id',
+        'destination_degree',
+        'destination_isperson',
+        'relation_type',
+        'position'
+    )
+
+    baxx_df = baxx_df.select(
+        'company_name',
+        'bbd_qyxx_id',
+        'source_name',
+        fun.when(
+            is_concat_udf(baxx_df.destination_bbd_id,baxx_df.source_bbd_id,baxx_df.source_isperson),
+            fun.concat_ws('_',baxx_df.destination_bbd_id,baxx_df.source_bbd_id).alias('source_bbd_id')
+        ).otherwise(
+            baxx_df.source_bbd_id
+        ).alias('source_bbd_id'),
+        'source_degree',
+        'source_isperson',
+        'destination_name',
+        'destination_bbd_id',
+        'destination_degree',
+        'destination_isperson',
+        'relation_type',
+        'position'
+    )
+
     off_line_relations = basic_df.union(
         gdxx_df
     ).union(
         baxx_df
     ).distinct()
 
-    # 剔除source中的企业节点
-    os.system(
-        '''
-        hadoop fs -rmr {path}/{version}/tmp_off_line_companys
-        '''.format(path=TMP_PATH,
-                   version=RELATION_VERSION))
-    off_line_relations.select(
-        off_line_relations.destination_bbd_id.alias('tmp_company_name')
-    ).distinct().write.parquet(
-        '{path}/{version}/tmp_off_line_companys'.format(path=TMP_PATH,
-                                                        version=RELATION_VERSION))
-    tmp_off_line_relations = spark.read.parquet(
-        '{path}/{version}/tmp_off_line_companys'.format(path=TMP_PATH,
-                                                        version=RELATION_VERSION))
-    
-    tid_off_line_relations = off_line_relations.join(
-        tmp_off_line_relations,
-        off_line_relations.source_bbd_id == tmp_off_line_relations.tmp_company_name,
-        'left_outer'
-    ).select(
-        off_line_relations.columns
-    )
-    
     tid_yisi = raw_yisi
     
     # 根据疑似数据，替换人的ID
-    off_line_relations_with_yisi = tid_off_line_relations.join(
+    off_line_relations_with_yisi = off_line_relations.join(
         tid_yisi,
-        [tid_off_line_relations.source_name == tid_yisi.personName, 
-         tid_off_line_relations.destination_bbd_id == tid_yisi.qyxxId],
+        [off_line_relations.source_name == tid_yisi.personName,
+         off_line_relations.destination_bbd_id == tid_yisi.qyxxId],
         'left_outer'
     ).select(
         'company_name',
@@ -241,7 +286,7 @@ def spark_data_flow():
             tid_yisi.newGroupId.isNotNull(),
             tid_yisi.newGroupId.alias('source_bbd_id')
         ).otherwise(
-            tid_off_line_relations.source_bbd_id
+            off_line_relations.source_bbd_id
         ).alias('source_bbd_id'),
         'source_degree',
         'source_isperson',
