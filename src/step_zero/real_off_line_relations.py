@@ -32,7 +32,7 @@ def get_id():
     获取一个空字段
     '''
     return None
-    
+
 def repalce_null_value(col):
     '''
     将''替换成'NULL'
@@ -221,10 +221,6 @@ def spark_data_flow():
         tmp_off_line_relations,
         off_line_relations.source_bbd_id == tmp_off_line_relations.tmp_company_name,
         'left_outer'
-    ).where(
-        filt(off_line_relations.relation_type, 
-             tmp_off_line_relations.tmp_company_name,
-             off_line_relations.source_isperson)
     ).select(
         off_line_relations.columns
     )
