@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 提交命令：
-/opt/spark-2.0.2/bin/spark-submit \
+/opt/spark-2.3.0/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
@@ -1134,7 +1134,7 @@ def to_redis(iterator):
     pipline = client.pipeline(transaction=True)
     
     for each_data in iterator:
-        pipline.set('test_quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), 
+        pipline.set('quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), 
                           json.dumps(each_data[1]))
     pipline.execute()
 
@@ -1202,3 +1202,5 @@ if __name__ == '__main__':
     spark = get_spark_session()    
     
     run()
+    
+    print '计算时间: ' + str(datetime.datetime.today())
