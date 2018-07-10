@@ -204,66 +204,6 @@ def spark_data_flow():
         '{path}/{version}/baxx_df'.format(path=TMP_PATH,
                                           version=RELATION_VERSION))
 
-    basic_df = basic_df.select(
-        'company_name',
-        'bbd_qyxx_id',
-        'source_name',
-        fun.when(
-            is_concat_udf(basic_df.destination_bbd_id,basic_df.source_bbd_id,basic_df.source_isperson),
-            fun.concat_ws('_',basic_df.destination_bbd_id,basic_df.source_bbd_id).alias('source_bbd_id')
-        ).otherwise(
-            basic_df.source_bbd_id
-        ).alias('source_bbd_id'),
-        'source_degree',
-        'source_isperson',
-        'destination_name',
-        'destination_bbd_id',
-        'destination_degree',
-        'destination_isperson',
-        'relation_type',
-        'position'
-    )
-
-    gdxx_df = gdxx_df.select(
-        'company_name',
-        'bbd_qyxx_id',
-        'source_name',
-        fun.when(
-            is_concat_udf(gdxx_df.destination_bbd_id,gdxx_df.source_bbd_id,gdxx_df.source_isperson),
-            fun.concat_ws('_',gdxx_df.destination_bbd_id,gdxx_df.source_bbd_id).alias('source_bbd_id')
-        ).otherwise(
-            gdxx_df.source_bbd_id
-        ).alias('source_bbd_id'),
-        'source_degree',
-        'source_isperson',
-        'destination_name',
-        'destination_bbd_id',
-        'destination_degree',
-        'destination_isperson',
-        'relation_type',
-        'position'
-    )
-
-    baxx_df = baxx_df.select(
-        'company_name',
-        'bbd_qyxx_id',
-        'source_name',
-        fun.when(
-            is_concat_udf(baxx_df.destination_bbd_id,baxx_df.source_bbd_id,baxx_df.source_isperson),
-            fun.concat_ws('_',baxx_df.destination_bbd_id,baxx_df.source_bbd_id).alias('source_bbd_id')
-        ).otherwise(
-            baxx_df.source_bbd_id
-        ).alias('source_bbd_id'),
-        'source_degree',
-        'source_isperson',
-        'destination_name',
-        'destination_bbd_id',
-        'destination_degree',
-        'destination_isperson',
-        'relation_type',
-        'position'
-    )
-
     off_line_relations = basic_df.union(
         gdxx_df
     ).union(
@@ -297,6 +237,28 @@ def spark_data_flow():
         'relation_type',
         'position'
     ).cache()
+
+    off_line_relations_with_yisi = off_line_relations_with_yisi.select(
+        'company_name',
+        'bbd_qyxx_id',
+        'source_name',
+        fun.when(
+            is_concat_udf(off_line_relations_with_yisi.destination_bbd_id,
+                          off_line_relations_with_yisi.source_bbd_id,off_line_relations_with_yisi.source_isperson),
+            fun.concat_ws('_',off_line_relations_with_yisi.destination_bbd_id,
+                          off_line_relations_with_yisi.source_bbd_id).alias('source_bbd_id')
+        ).otherwise(
+            off_line_relations_with_yisi.source_bbd_id
+        ).alias('source_bbd_id'),
+        'source_degree',
+        'source_isperson',
+        'destination_name',
+        'destination_bbd_id',
+        'destination_degree',
+        'destination_isperson',
+        'relation_type',
+        'position'
+    )
     
     off_line_relations_with_yisi.createOrReplaceTempView(
         'off_line_relations_with_yisi')
@@ -308,7 +270,8 @@ def spark_data_flow():
         select * from off_line_relations_with_yisi
         '''.format(version=RELATION_VERSION)
     )
-        
+
+
 def run():
     spark_data_flow()
     
@@ -336,7 +299,8 @@ def get_spark_session():
         .getOrCreate()  
         
     return spark 
-    
+
+
 if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
