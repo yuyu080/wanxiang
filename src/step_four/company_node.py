@@ -159,7 +159,7 @@ def spark_data_flow():
         WHERE 
         dt='{version}'  
         AND
-        (source_isperson = 0 or source_isperson = 3)
+        (source_isperson = 0 or source_isperson = 2 or source_isperson = 3)
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     )
