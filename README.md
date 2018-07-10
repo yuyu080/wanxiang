@@ -27,7 +27,7 @@ nohup ../../bin/neo4j-admin import \
 --ignore-duplicate-nodes=true \
 --ignore-extra-columns=true \
 --report-file=import.report &
-#### 5、加载完毕后，启动neo4j服务，依次执行下面语句建索引：
+#### 5、加载完毕后，启动neo4j服务，依次执行下面语句建索引，执行完毕后在图库中通过 call db.index 查看索引创建结果：
 CREATE INDEX ON :Company(bbd_qyxx_id)   
 CREATE INDEX ON :Person(bbd_qyxx_id)   
 CREATE INDEX ON :Role(bbd_role_id)   
@@ -37,6 +37,9 @@ CREATE INDEX ON :Industry(industry_code)
 CREATE INDEX ON :Time(time)   
 CREATE INDEX ON :Company(address)   
 CREATE INDEX ON :Contact(bbd_contact_id)   
+#### 6、通过 call db.index 查看索引创建结果，在确认索引全部创建成功后，执行bin/neo4j stop停止数据库
+#### 7、将加载好的数据库scp至灰度环境，并启动，通知测试、产品验证
+#### 8、验证通过后，通知运维人员进行上线准备，具体线上切换时间由产品确认
 
 ## redis缓存加载流程
 
