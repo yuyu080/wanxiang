@@ -56,6 +56,9 @@ def filter_bad_case(relation_type, des_id, source_isperson):
 
 
 def is_concat(destination_bbd_id,source_bbd_id,source_isperson):
+    '''
+    判断一条数据的 source_bbd_id 是否需要修改成 destination_bbd_id + '_' + source_bbd_id 的形式
+    '''
     if source_isperson == '2' and destination_bbd_id is not None and source_bbd_id is not None:
         return True
     else:
@@ -176,6 +179,8 @@ def spark_data_flow():
                                               version=RELATION_VERSION))
 
     # 触发计算逻辑
+
+    # 获取疑似数据
     raw_yisi = spark.sql(
         '''
         SELECT
@@ -204,6 +209,7 @@ def spark_data_flow():
         '{path}/{version}/baxx_df'.format(path=TMP_PATH,
                                           version=RELATION_VERSION))
 
+    # 得到全量工商数据
     off_line_relations = basic_df.union(
         gdxx_df
     ).union(
@@ -238,6 +244,7 @@ def spark_data_flow():
         'position'
     ).cache()
 
+    # 修改 source_isperson 为 2 的数据的 source_bbd_id
     off_line_relations_with_yisi = off_line_relations_with_yisi.select(
         'company_name',
         'bbd_qyxx_id',
@@ -312,5 +319,8 @@ if __name__ == '__main__':
 
     #sparkSession
     spark = get_spark_session()
-    
+
+    # 从 dw.qyxx_basic dw.qyxx_gdxx dw.qyxx_baxx 中读取全量工商数据
+    # 从 dw.uniq_person_id_v2 中读取疑似数据
+    # 将处理过的全量工商数据导入 wanxiang.off_line_relations，以便之后在获取角色节点、公司节点、人物节点时读取
     run()

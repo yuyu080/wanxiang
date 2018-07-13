@@ -101,7 +101,8 @@ def spark_data_flow():
     
     get_relation_label_3_udf = fun.udf(
         partial(lambda r: r, 'VIRTUAL'), tp.StringType())    
-    
+
+    # 获取工商数据中的角色节点信息
     raw_role_df = spark.sql(
         '''
         SELECT 
@@ -115,11 +116,6 @@ def spark_data_flow():
         {database}.off_line_relations 
         WHERE 
         dt='{version}'
-        AND
-        (source_isperson = 0 or source_isperson = 1 or source_isperson = 3)
-        AND
-        (destination_isperson = 0 or destination_isperson = 1 or destination_isperson = 3)
-
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     ).where(
@@ -443,7 +439,12 @@ if __name__ == '__main__':
 
     #sparkSession
     spark = get_spark_session()
-    
+
+    # 从 off_line_relations 中获取工商信息中的角色节点信息
+    # 从 qyxx_gdxx 中获取 Invest 角色节点的投资信息
+    # 从 qyxx_fzjg_merge 中获取分支机构角色节点的信息
+    # 将中间结果分支机构信息写入 /user/wanxiang/tmpdata/tid_qyxx_fzjg_merge 中，之后在获取公司节点时需要读取
+    # 将最后结果角色节点的 node 和 edge 数据写入 /user/wanxiang/step_one/ 中
     run()
     
     

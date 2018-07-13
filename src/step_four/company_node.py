@@ -188,7 +188,7 @@ def spark_data_flow():
         WHERE 
         dt='{version}'  
         AND
-        destination_isperson = 0
+        (destination_isperson = 0 or destination_isperson = 2 or destination_isperson = 3)
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     )
@@ -352,6 +352,7 @@ def spark_data_flow():
         'row_number == 1'
     )
 
+    # 提取 raw_basic_df 中没有的那些企业信息
     tmp_company_df = tmp_company_all_df.join(
         raw_basic_df,
         'bbd_qyxx_id',
@@ -385,6 +386,7 @@ def spark_data_flow():
                    version=RELATION_VERSION)
     )
 
+    # raw_basic_df 中有人物节点，需要剔除
     prd_basic_df = raw_basic_df.union(
         tmp_company_df
     ).join(
@@ -486,7 +488,7 @@ def spark_data_flow():
         ['company_county']
     )
 
-    # 中间结果
+    # 中间结果，计算 fzjg\dwtzxx\gdxx\baxx 的属性值
     tmp_role_df = spark.read.parquet(
         "{path}/tmp_role_df/{version}".format(path=TMP_PATH, 
                                               version=RELATION_VERSION))
@@ -756,9 +758,20 @@ if __name__ == '__main__':
     fzjg_version = XGXX_RELATION
     jyyc_version = XGXX_RELATION
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
+
+    # 从 /user/wanxiang/tmpdata/tid_qyxx_fzjg_merge 读取分支机构中的公司信息
+    # 从 /user/wanxiang/tmpdata/tmp_xgxx_relation_df 和 /user/wanxiang/tmpdata/raw_event_df 读取事件信息中的公司信息
+    # 从 wanxiang.off_line_relations 表中读取公司信息
+    # 从 dw.name 表中读取公司信息
+    # 将上面所有公司信息做 union
+    # 从 dw.qyxx_basic 表中读取公司信息，与上面的公司信息合并并且去重
+    # 从 /user/wanxiang/step_three 读取人物节点的 node 信息，因为上面的公司中包含自然人，所以需要剔除
+    # 从 /user/wanxiang/step_two 读取事件节点的 node 信息，有些事件与公司 id 重复，需要将这些公司剔除
+    # 从 /user/wanxiang/tmpdata/tmp_role_df 读取事件信息，为公司添加属性值
+    # 从 /user/wanxiang/inputdata/company_county_mapping_20180103.data 中读取地域信息，为公司添加属性值
+    # 最终将公司节点的 node 写入 /user/wanxiang/step_four
     run()
     
     

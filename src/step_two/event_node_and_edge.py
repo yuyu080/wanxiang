@@ -613,7 +613,12 @@ if __name__ == '__main__':
 
     #sparkSession
     spark = get_spark_session()
-    
+
+    # 从各个事件表中读取事件信息， 将中间数据事件信息写入 /user/wanxiang/tmpdata/raw_event_df
+    # 和 /user/wanxiang/tmpdata/tmp_xgxx_relation_df
+    # 将上面两种事件合并后将中间数据写入 /user/wanxiang/tmpdata/tid_xgxx_relation_df
+    # 上面的中间结果在创建公司节点及其属性时都会用到
+    # 从 /user/wanxiang/tmpdata/tid_xgxx_relation_df 读取中间数据，处理得到事件的 node 和 edge，写入 /user/wanxiang/step_two
     run()
     
     

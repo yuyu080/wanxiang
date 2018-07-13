@@ -244,7 +244,11 @@ if __name__ == '__main__':
 
     #sparkSession
     spark = get_spark_session()
-    
+
+    # 从 /user/wanxiang/step_one 中读取角色节点信息，用于计算人物节点的 dwtzxx 属性
+    # 中间结果 tmp_role_df 保存在 /user/wanxiang/tmpdata/tmp_role_df，之后计算公司的属性时也会用到
+    # 从 off_line_relations 中读取人物信息，添加 dwtzxx 属性
+    # 最后结果人物的 node 写入 /user/wanxiang/step_three
     run()
     
     
