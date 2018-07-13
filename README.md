@@ -2,7 +2,7 @@
 
 ## 离线图库加载流程
 #### 1、确定work_flow.py脚本参数，是计算历史数据还是重置，注意修改数据版本参数，详见脚本注释。
-#### 2、切换至专用离线图库（地址见http://git.bbdops.com/yuyu080/wanxiang_neo4j/tree/master） 加载环境，注意节点磁盘使用情况，一次加载需要预留1T磁盘空间
+#### 2、切换至专用离线图库（地址见http://git.bbdops.com/yuyu080/wanxiang_neo4j/tree/master ） 加载环境，注意节点磁盘使用情况，一次加载需要预留1T磁盘空间
 #### 3、修改to_local.py脚本路径与数据版本参数，将数据下载至Neo4j的import目录
 #### 4、在import相应的数据日期目录下执行数据加载命令，填写相应的数据版本号：
 nohup ../../bin/neo4j-admin import \
