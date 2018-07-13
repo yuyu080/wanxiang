@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 industry_node_and_edge.py {xgxx_relation} {relation_version}
-'''
+"""
 
 import sys
 import os
@@ -19,27 +19,34 @@ from pyspark.sql import functions as fun, types as tp, Row
 
 
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def get_industry_label():
     return 'Entity;Industry'
 
+
 def spark_data_flow():
-    '''
+    """
     行业节点，可以根据“企业节点”的中间结果统计
-    '''
+    """
     get_industry_label_udf = fun.udf(get_industry_label, tp.StringType())
     get_industry_relation_label_udf = fun.udf(
         partial(lambda r: r, 'BELONG'), tp.StringType())
@@ -78,7 +85,8 @@ def spark_data_flow():
     ).map(
         lambda r: Row(name=r[1], company_industry=r[0])
     ).toDF()
-    
+
+    # 每种行业的公司总数
     tmp_industry_df = prd_basic_df.select(
         'company_industry'
     ).groupBy(
@@ -87,7 +95,8 @@ def spark_data_flow():
     ).withColumnRenamed(
         'count', 'company_num'
     )
-    
+
+    # 输出 node（行业编码、行业名称、公司总数、节点创建时间、节点更新时间、标签）
     prd_industry_node_df = raw_industry_df.join(
         tmp_industry_df,
         'company_industry',
@@ -121,6 +130,7 @@ def spark_data_flow():
     
     return prd_industry_node_df, prd_industry_edge_df
 
+
 def get_spark_session():   
     conf = SparkConf()
     conf.setMaster('yarn-client')
@@ -139,12 +149,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_industry_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     prd_industry_node_df, prd_industry_edge_df = spark_data_flow()
 
@@ -165,7 +176,8 @@ def run():
     prd_industry_edge_df.coalesce(600).write.csv(
         '{path}/{version}/industry_edge'.format(path=OUT_PATH,
                                                 version=RELATION_VERSION))
-    
+
+
 if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
@@ -174,9 +186,9 @@ if __name__ == '__main__':
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_six/'
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
+    # 从 /user/wanxiang/tmpdata/prd_basic_df 读取公司信息
+    # 自己创建一个二元组的 list 名为 industry_data，包含行业编码和行业名称，构建一个 DataFrame
+    # 得到行业节点的 node 和行业节点与其他节点相连的 edge 写入 /user/wanxiang/step_six
     run()
-    
-    

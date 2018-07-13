@@ -13,8 +13,10 @@ import numpy as np
 from neo4j.v1 import GraphDatabase
 import networkx as nx
 
+
 class GraphNotExistError(Exception):
     pass
+
 
 def event_delta_time(value):
     try:
@@ -27,7 +29,8 @@ def event_delta_time(value):
         return delta.days
     except:
         return 0.
-    
+
+
 def esdate_delta_time(value):
     try:
         time_format = '%Y-%m-%d'
@@ -36,7 +39,7 @@ def esdate_delta_time(value):
         return delta.days
     except:
         return 0.
-#%%
+
 
 class Neo4jDriver(object):
     
@@ -46,32 +49,32 @@ class Neo4jDriver(object):
 
 
 class RedisHelper(object):
-    pool = redis.ConnectionPool(host='10.28.100.24', port=36340, 
-                                    password='BBDredis', db=0)
+    pool = redis.ConnectionPool(host='10.28.100.24', port=36340,
+                                password='BBDredis', db=0)
     client = redis.Redis(connection_pool=pool)
     pipline = client.pipeline(transaction=True)
 
+
 class MyTimer(object):
-    def __init__(self,verbose=False):
-        self.verbose=verbose
+    def __init__(self, verbose=False):
+        self.verbose = verbose
  
     def __enter__(self):
-        self.start=time.time()
+        self.start = time.time()
         return self
  
-    def __exit__(self,*unused):
-        self.end=time.time()
-        self.secs=self.end-self.start
-        self.msecs=self.secs
+    def __exit__(self, *unused):
+        self.end = time.time()
+        self.secs = self.end-self.start
+        self.msecs = self.secs
         if self.verbose:
-            print"elapsed time: %f s"%self.msecs
+            print"elapsed time: %f s" % self.msecs
 
-#%%
 
 class RelationFeatureConstruction(object):
-    '''
+    """
     计算特征的函数集
-    '''
+    """
     
     def __init__(self, graph, bbd_qyxx_id):
         
@@ -84,8 +87,7 @@ class RelationFeatureConstruction(object):
                         self.graph.to_undirected(), source=self.tar_id)
         else:
             raise GraphNotExistError
-        
-        
+
         # 目标公司董监高列表
         self.tar_director_node = []
         self.tar_executive_node = []
@@ -147,7 +149,6 @@ class RelationFeatureConstruction(object):
         if u'吊销' in node_attr:
             self.gs_eb_2_degree_rel_revoke_num += 1
     
-    
     def get_gs_eb_2_degree_rel_ltd_abo_bum(self, node_attr):
         self.gs_eb_2_degree_rel_ltd_abo_bum += node_attr
 
@@ -181,7 +182,7 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_1_degree_rel_na_rt(self):
         try:
             count = Counter(self.gs_rp_1_degree_rel_na_rt)
-            return round(count[True]*1. / (count[True]+count[False]),3)
+            return round(count[True]*1. / (count[True]+count[False]), 3)
         except:
             return 0.
     
@@ -200,7 +201,7 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_2_degree_rel_na_rt(self):
         try:
             count = Counter(self.gs_rp_2_degree_rel_na_rt)
-            return round(count[True]*1. / (count[True]+count[False]),3)
+            return round(count[True]*1. / (count[True]+count[False]), 3)
         except:
             return 0.
     
@@ -217,19 +218,18 @@ class RelationFeatureConstruction(object):
         self.gs_rp_2_degree_rel_patent_cnt += node_attr
     
     def get_des_feature(self):
-        '''
+        """
         目标公司董监高对外投资&兼职
-        '''
+        """
         company_des_node = set()
         company_inv_node = set()
-        for each_node in (self.tar_director_node+
-                          self.tar_executive_node+
+        for each_node in (self.tar_director_node +
+                          self.tar_executive_node +
                           self.tar_supervisor_node):
             for each_edge in self.graph.out_edges(each_node, data=True):
                 if (('DIRECTOR' in each_edge[2]['type'] or
                         'EXECUTIVE' in each_edge[2]['type'] or
-                        'SUPERVISOR' in each_edge[2]['type']) and
-                            self.tar_id != each_edge[1]):
+                        'SUPERVISOR' in each_edge[2]['type']) and self.tar_id != each_edge[1]):
                     company_des_node.add(each_edge[1])
                 if ('INVEST' in each_edge[2]['type'] and 
                         self.tar_id != each_edge[1]):
@@ -250,9 +250,9 @@ class RelationFeatureConstruction(object):
         return len(self.tar_supervisor_node)
     
     def get_company_des_featrure(self):
-        '''
+        """
         一度公司董事，高管数
-        '''
+        """
         director_node = set()
         all_des_node = set()
         for each_node in self.one_company_node:
@@ -266,9 +266,9 @@ class RelationFeatureConstruction(object):
         return len(director_node), len(all_des_node)
     
     def get_investor_inv(self):
-        '''
+        """
         目标公司自然人股东对外投资&在外任职数量
-        '''
+        """
         out_invest_degree = 0
         out_des_degree = 0
         for each_node in self.tar_invest_human:
@@ -281,14 +281,14 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_net_cluster_coefficient(self):
         try:
             return round(nx.cluster.average_clustering(
-                            self.graph.to_undirected()),2)
+                            self.graph.to_undirected()), 2)
         except:
             return 0
     
     def get_gs_rp_core_na_one_ctr_node_cnt(self):
         try:
             max_control = max(
-                num for node,num in self.graph.out_degree(self.one_human_node))
+                num for node, num in self.graph.out_degree(self.one_human_node))
             return max_control
         except:
             return 0
@@ -296,9 +296,9 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_1_wn_3_degree_rel_ncmcc(self):
         try:
             max_control = max(
-                num for node,num in self.graph.out_degree(self.one_human_node+
-                                                          self.two_human_node+
-                                                          self.three_human_node))        
+                num for node, num in self.graph.out_degree(self.one_human_node +
+                                                           self.two_human_node +
+                                                           self.three_human_node))
             return max_control
         except:
             return 0
@@ -306,9 +306,9 @@ class RelationFeatureConstruction(object):
     def get_gs_rp_1_wn_3_degree_rel_lpcmcc(self):
         try:
             max_control = max(
-                num for node,num in self.graph.out_degree(self.one_company_node+
-                                                          self.two_company_node+
-                                                          self.three_company_node))
+                num for node, num in self.graph.out_degree(self.one_company_node +
+                                                           self.two_company_node +
+                                                           self.three_company_node))
             return max_control
         except:
             return 0
@@ -320,21 +320,21 @@ class RelationFeatureConstruction(object):
         return self.graph.out_degree(self.tar_id)
     
     def get_gs_rp_legal_rel_cnt(self):
-        return len(self.one_company_node+
-                   self.two_company_node+
+        return len(self.one_company_node +
+                   self.two_company_node +
                    self.three_company_node)
     
     def get_gs_eo_lagal_person_sh_ext_time(self):
-        '''
+        """
         法人股东平均存续时间
-        '''
+        """
         invest_company = set()
         for each_node in self.one_company_node:
             for each_edge in self.graph.out_edges(each_node, data=True):
                 if self.tar_id == each_edge[1]:
                     invest_company.add(each_node)
         invest_company_estime = [
-            esdate_delta_time(self.graph.nodes[node].get('esdate',''))
+            esdate_delta_time(self.graph.nodes[node].get('esdate', ''))
             for node in invest_company
         ]
         
@@ -350,20 +350,20 @@ class RelationFeatureConstruction(object):
                           self.three_company_node):
             invest_company.add(each_node)
         invest_company_estime = [
-            esdate_delta_time(self.graph.nodes[node].get('esdate',''))
+            esdate_delta_time(self.graph.nodes[node].get('esdate', ''))
             for node in invest_company
         ]
         
         try:
             return round(sum(invest_company_estime) / 
-                         len(invest_company_estime),3)
+                         len(invest_company_estime), 3)
         except:
             return 0.         
 
     def get_exe_abnormal_business_risk(self):
-        '''
+        """
         被执行风险，经营异常风险
-        '''
+        """
         dishonesty_num = [0]*4
         zhixing_num = [0]*4
         jyyc_num = [0]*4
@@ -395,32 +395,31 @@ class RelationFeatureConstruction(object):
                                         u'注销' in pro.get('estatus', '')) else 0
                 
         risk1 = np.dot(
-            map(lambda (x,y): x+2*y, zip(zhixing_num, dishonesty_num)),
+            map(lambda (x, y): x+2*y, zip(zhixing_num, dishonesty_num)),
             [1., 1/2., 1/3., 1/4.]
         )
         
         risk2 = np.dot(
-            map(lambda (x,y): x+2*y, zip(jyyc_num, estatus_num)),
+            map(lambda (x, y): x+2*y, zip(jyyc_num, estatus_num)),
             [1., 1/2., 1/3., 1/4.]
         )
         
-        return round(risk1,3), round(risk2,3)
-        
-        
+        return round(float(risk1), 3), round(float(risk2), 3)
+
     def get_gs_rp_actual_ctr_risk(self):
-        '''
+        """
         实际控制人风险
-        '''
+        """
         def get_degree_distribution(is_human):
             if is_human:
-                sets = (self.one_human_node+
-                        self.two_human_node+
+                sets = (self.one_human_node +
+                        self.two_human_node +
                         self.three_human_node)
             else:
-                sets = (self.one_company_node+
-                        self.two_company_node+
+                sets = (self.one_company_node +
+                        self.two_company_node +
                         self.three_company_node)
-            person_out_degree = [v for k,v in self.graph.out_degree(sets)]
+            person_out_degree = [v for k, v in self.graph.out_degree(sets)]
             if not person_out_degree:
                 person_out_degree.append(0)
             return person_out_degree
@@ -433,8 +432,8 @@ class RelationFeatureConstruction(object):
         nature_avg_control = round(np.average(nature_person_distribution), 2)
         legal_avg_control = round(np.average(legal_person_distribution), 2)
         
-        total_legal_num = len(self.one_company_node+
-                              self.two_company_node+
+        total_legal_num = len(self.one_company_node +
+                              self.two_company_node +
                               self.three_company_node)
         
         risk = round(((
@@ -445,9 +444,9 @@ class RelationFeatureConstruction(object):
         return risk
         
     def get_gs_rp_comp_expend_path_risk(self):
-        '''
+        """
         公司扩张路径风险
-        '''
+        """
         nature_person_distribution = {
             1: len(self.one_human_node),
             2: len(self.two_human_node),
@@ -479,9 +478,9 @@ class RelationFeatureConstruction(object):
         return risk
         
     def get_gs_rp_rel_center_cluster_risk(self):
-        '''
+        """
         关联方中心集聚风险
-        '''
+        """
         legal_person_shareholder = set()
         legal_person_subsidiary = set()
         for each_node in self.one_company_node:
@@ -496,9 +495,9 @@ class RelationFeatureConstruction(object):
         return risk
         
     def get_gs_rp_rel_strt_stability_risk(self):
-        '''
+        """
         关联方结构稳定风险
-        '''
+        """
         relation_three_num = len(self.three_human_node)+len(self.three_company_node)
         relation_two_num = len(self.two_human_node)+len(self.two_company_node)
         relation_one_num = len(self.one_human_node)+len(self.one_company_node)
@@ -514,14 +513,12 @@ class RelationFeatureConstruction(object):
         y_3 = x[3] / (x[1]+x[2]+x[3])
         risk = y_2/2 + y_3/3
 
-        return round(risk,3)        
-        
-        
-    
+        return round(risk, 3)
+
     def get_relation_features(self):
-        '''
+        """
         计算入口
-        '''
+        """
         for node, pro in self.graph.node(data=True):
             if self.input_distance[node] == 3:
                 if self.graph.node[node]['is_human']:
@@ -560,15 +557,15 @@ class RelationFeatureConstruction(object):
                     
                 self.gs_rp_2_degree_rel_cnt.append(node)
                 self.gs_rp_2_degree_rel_na_rt.append(pro.get('is_human', False))
-                self.get_gs_rp_2_degree_rel_inv_cnt(pro.get('zgcpwsw',0)
-                                                    +pro.get('rmfygg',0))
+                self.get_gs_rp_2_degree_rel_inv_cnt(pro.get('zgcpwsw', 0)
+                                                    + pro.get('rmfygg', 0))
                 
             elif self.input_distance[node] == 1:
                 if self.graph.node[node]['is_human']:
                     self.one_human_node.append(node)
                     
                     # 目标公司董监高&投资人
-                    for each_edge in self.graph.out_edges(node,data=True):
+                    for each_edge in self.graph.out_edges(node, data=True):
                         if self.tar_id == each_edge[1]:
                             if 'DIRECTOR' in each_edge[2]['type']:
                                 self.tar_director_node.append(node)
@@ -595,15 +592,15 @@ class RelationFeatureConstruction(object):
                     
                 self.get_gs_rp_1_degree_rel_cnt(node)
                 self.gs_rp_1_degree_rel_na_rt.append(pro.get('is_human', False))
-                self.get_gs_rp_1_degree_rel_inv_cnt(pro.get('zgcpwsw',0)
-                                                    +pro.get('rmfygg',0))
-                self.get_gs_rp_1_degree_rel_patent_cnt(pro.get('zhuanli',0))
+                self.get_gs_rp_1_degree_rel_inv_cnt(pro.get('zgcpwsw', 0)
+                                                    + pro.get('rmfygg', 0))
+                self.get_gs_rp_1_degree_rel_patent_cnt(pro.get('zhuanli', 0))
                 
             elif self.input_distance[node] == 0:
                 pass
                 
         (gs_rp_leader_pluralism_cnt,
-         gs_rp_leader_investment_cnt)= self.get_des_feature()
+         gs_rp_leader_investment_cnt) = self.get_des_feature()
         (gs_rp_1_degree_rel_comp_di_cnt,
          gs_rp_1_degree_rel_comp_ec) = self.get_company_des_featrure()
         (gs_rp_na_pa_inv_out_cnt,
@@ -666,10 +663,8 @@ class RelationFeatureConstruction(object):
                 'gs_rp_comp_expend_path_risk': self.get_gs_rp_comp_expend_path_risk(),
                 'gs_rp_rel_center_cluster_risk': self.get_gs_rp_rel_center_cluster_risk(),
                 'gs_rp_rel_strt_stability_risk': self.get_gs_rp_rel_strt_stability_risk()            
-                }  
-            
+                }
 
-#%%
             
 class DiGraph(object):
     
@@ -679,13 +674,13 @@ class DiGraph(object):
          self.company_correlative_edges) = self.get_tid_digraph()
 
     def init_nx_graph(self, node_list, edge_list, is_muti_graph):
-        #网络初始化
+        # 网络初始化
         if is_muti_graph:
             DIG = nx.MultiDiGraph()
         else:
-            DIG= nx.DiGraph()
-        #增加带属性的节点
-        #增加带属性的边
+            DIG = nx.DiGraph()
+        # 增加带属性的节点
+        # 增加带属性的边
         DIG.add_nodes_from(node_list)
         DIG.add_edges_from(edge_list)
         return DIG 
@@ -712,9 +707,9 @@ class DiGraph(object):
                 return nodes, edges
                 
     def get_tid_digraph(self):
-        '''
+        """
         从neo4j读取数据
-        '''    
+        """
         
         def get_node(row):
             row['x'].properties['labels'] = list(each_node['x'].labels)
@@ -728,11 +723,11 @@ class DiGraph(object):
                     for i in row['x'].properties['labels'] 
                     if i != 'Role' and i != 'Entity'][0]
             
-            return (row['x'].id, label, row['x'].properties)
+            return row['x'].id, label, row['x'].properties
     
         def get_edge(row):
             row['x'].properties['type'] = each_edge['x'].type
-            return (row['x'].start, row['x'].end)
+            return row['x'].start, row['x'].end
         
         nodes, edges = self.get_raw_digraph()           
     
@@ -748,9 +743,9 @@ class DiGraph(object):
         return company_correlative_nodes, company_correlative_edges
     
     def __get_prd_edges(self):
-        '''
+        """
         去掉role节点，返回新的边点三元组
-        '''   
+        """
         raw_nodes = [
             (node, label) 
             for node, label, pro 
@@ -766,7 +761,7 @@ class DiGraph(object):
         prd_df = prd_df[
             (prd_df.label != 'Company')&(prd_df.label != 'Person')
         ].loc[
-            :,['src_x', 'des_y', 'label']
+            :, ['src_x', 'des_y', 'label']
         ].sort_values(
             ['src_x', 'des_y']
         )
@@ -774,18 +769,18 @@ class DiGraph(object):
           
         # 格式化
         prd_edges = map(
-            lambda ((src,des),y): (src,des,
-                                   {'type': '|'.join(map(itemgetter(2),y))}), 
+            lambda ((src,des), y): (src, des,
+                                   {'type': '|'.join(map(itemgetter(2), y))}),
             groupby(zip(prd_df['src_x'], prd_df['des_y'], prd_df['label']), 
-                    key=lambda x: (x[0],x[1])))
+                    key=lambda x: (x[0], x[1])))
         return prd_edges
 
-    
     def get_prd_digraph(self, is_muti_graph=False):
         black_list = self.is_black(filter(None,
-                                          [pro.get('bbd_qyxx_id','') 
-                                          for node, label, pro 
-                                          in self.company_correlative_nodes]))
+                                          [pro.get('bbd_qyxx_id', '')
+                                           for node, label, pro
+                                           in self.company_correlative_nodes]))
+
         def get_pro(pro):
             if pro.get('bbd_qyxx_id', '') in black_list:
                 pro[u'is_black'] = True
@@ -797,17 +792,17 @@ class DiGraph(object):
         
         if prd_edges:
             # 根据角色节点
-            tmp_nodes = reduce(lambda x,y:x.union(y), 
-                               [set([src,des]) for (src,des,pro) in prd_edges])
+            tmp_nodes = reduce(lambda x, y: x.union(y),
+                               [{src, des} for (src, des, pro) in prd_edges])
             prd_nodes = [
                 (node, get_pro(pro))
-                for node,label,pro in self.company_correlative_nodes
+                for node, label, pro in self.company_correlative_nodes
                 if node in tmp_nodes
             ]
         else:
             prd_nodes = [
                 (node, get_pro(pro))
-                for node,label,pro in self.company_correlative_nodes
+                for node, label, pro in self.company_correlative_nodes
             ]
 
         return self.init_nx_graph(prd_nodes, prd_edges, is_muti_graph)
@@ -823,7 +818,7 @@ class DiGraph(object):
         RedisHelper.client.delete(redis_key)
         return black_node
 
-#%%
+
 class TarNodeFeatureConstruction(object):
     
     def __init__(self, bbd_qyxx_id):
@@ -867,46 +862,46 @@ class TarNodeFeatureConstruction(object):
         
         for each_node in nodes:
             if 'Company' in each_node['x'].labels:
-                 self.gs_eo_patent_num = each_node['x'].properties.get('zhuanli',0)
-                 self.gs_eb_exe_num = each_node['x'].properties.get('zhixing',0)
-                 self.gs_eb_dishonesty_num = each_node['x'].properties.get('dishonesty',0)
-                 self.gs_eb_listed_abopn_num = each_node['x'].properties.get('jyyc',0)
-                 self.gs_eb_branch_num = each_node['x'].properties.get('fzjg',0)
-                 self.gs_eb_court_announce_num = each_node['x'].properties.get('rmfygg',0)
-                 self.gs_eb_juddoc_num = each_node['x'].properties.get('zgcpwsw',0)
+                self.gs_eo_patent_num = each_node['x'].properties.get('zhuanli', 0)
+                self.gs_eb_exe_num = each_node['x'].properties.get('zhixing', 0)
+                self.gs_eb_dishonesty_num = each_node['x'].properties.get('dishonesty', 0)
+                self.gs_eb_listed_abopn_num = each_node['x'].properties.get('jyyc', 0)
+                self.gs_eb_branch_num = each_node['x'].properties.get('fzjg', 0)
+                self.gs_eb_court_announce_num = each_node['x'].properties.get('rmfygg', 0)
+                self.gs_eb_juddoc_num = each_node['x'].properties.get('zgcpwsw', 0)
                  
             if 'Xzcf' in each_node['x'].labels:
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     365*2):    
                     gs_eb_admin_punish_num_2_y += 1
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     30*6):
                     gs_eb_admin_punish_num_1_y += 1
                 
             if 'Zhixing' in each_node['x'].labels:
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     365*2):
                     gs_eb_exe_num_2_y += 1
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     30*6):
                     gs_eb_exe_num_h_y += 1
                     
             if 'Dishonesty' in each_node['x'].labels:
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     365*2):
                     gs_eb_dishonesty_2_y += 1
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     30*6):
                     gs_eb_dishonesty_h_y += 1
                     
             if 'Zgcpwsw' in each_node['x'].labels:
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     365*2):
                     gs_eb_jud_doc_num_2_y += 1
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     30*6):                
                     gs_eb_jud_doc_num_h_y += 1
-                if self.is_in_range(each_node['x'].properties.get('event_time',0),
+                if self.is_in_range(each_node['x'].properties.get('event_time', 0),
                                     30*3):   
                     gs_eb_jud_doc_num_three_mth += 1
                  
@@ -937,25 +932,21 @@ class TarNodeFeatureConstruction(object):
         else:
             return False
 
-#%%
-
      
 if __name__ == '__main__':
-    #在不考虑网络网络的情况下，创建连接的时间在0.7s左右    
+    # 在不考虑网络网络的情况下，创建连接的时间在0.7s左右
     bbd_qyxx_id = 'ba369113a4c244608fb3541a4a5e6074'  
-    #99 152
+    # 99 152
     with MyTimer(True):
         print '初始化'
         my_graph = DiGraph(bbd_qyxx_id)
     with MyTimer(True):
         print '构造输出子图' 
         prd_graph = my_graph.get_prd_digraph()
-        print "处理后的节点个数:" , len(prd_graph)
+        print "处理后的节点个数:", len(prd_graph)
     with MyTimer(True):    
         relation_feature = RelationFeatureConstruction(prd_graph, bbd_qyxx_id)
         print relation_feature.get_relation_features()
     with MyTimer(True):
         tar_feature = TarNodeFeatureConstruction(bbd_qyxx_id)
         print tar_feature.get_tar_features()
-        
-        

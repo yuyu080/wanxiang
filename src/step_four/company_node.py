@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 company_node.py {xgxx_relation} {relation_version} 
-'''
+"""
 
 import sys
 import os
@@ -18,34 +18,45 @@ from pyspark.sql import functions as fun, types as tp
 from pyspark.sql import Window
 from pyspark.sql.functions import row_number
 
+
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def filter_length(col):
-    '''过滤明显是错误的qyxx_id'''
+    """
+    过滤明显是错误的qyxx_id
+    """
     if col and len(col) > 1:
         return True
     else:
         return False
+
 
 def get_label(x):
     try:
         return x.split(';')[2]
     except:
         return ''
-    
+
+
 def filter_tab(x):
     try:
         return True if '    ' not in x else False
@@ -54,9 +65,9 @@ def filter_tab(x):
     
         
 def spark_data_flow():
-    '''
+    """
     STEP 1：数据准备
-    '''
+    """
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     filter_length_udf = fun.udf(filter_length, tp.BooleanType())
@@ -64,7 +75,7 @@ def spark_data_flow():
         filter_tab, 
         tp.BooleanType()
     )
-    get_label_udf = fun.udf(get_label , tp.StringType())
+    get_label_udf = fun.udf(get_label, tp.StringType())
     window = Window.partitionBy(
         ['bbd_qyxx_id']
     ).orderBy(
@@ -74,8 +85,8 @@ def spark_data_flow():
     # 自然人节点
     person_df = spark.read.csv(
         '{path}/{version}/person_node'.format(
-        path=IN_PATH_TWO,
-        version=RELATION_VERSION))
+            path=IN_PATH_TWO,
+            version=RELATION_VERSION))
 
     # 事件节点    
     event_node = spark.read.csv(
@@ -193,7 +204,6 @@ def spark_data_flow():
                    version=RELATION_VERSION)
     )
 
-    
     tmp_company_3_df = spark.sql(
         '''
         SELECT 
@@ -436,8 +446,7 @@ def spark_data_flow():
          "{version}").format(path=TMP_PATH, 
                              version=RELATION_VERSION)
     )
-        
-    
+
     # state_owned
     so_count_df = spark.sql(
         '''
@@ -458,8 +467,7 @@ def spark_data_flow():
         '{path}/tid_xgxx_relation_df/{version}'.format(path=TMP_PATH,
                                                        version=RELATION_VERSION)
     )
-        
- 
+
     all_xgxx_info_df = tid_xgxx_relation_df.groupBy(
         ['bbd_qyxx_id', 'bbd_table']
     ).agg(
@@ -556,7 +564,6 @@ def spark_data_flow():
     ).withColumnRenamed(
         'END_ID', 'bbd_qyxx_id'
     ).cache()
-    
 
     '''
     STEP 2.0 合并中间结果，由于涉及到多列解析，因此用rdd来输出最终结果
@@ -602,9 +609,9 @@ def spark_data_flow():
     ).cache()
     
     def get_company_info(row):
-        '''
+        """
         将节点的属性按照一定方式组合，并且输出
-        '''
+        """
         row = row.asDict()
         
         def get_some_xgxx_info(xgxx_name, all_xgxx=row['all_xgxx_info']):
@@ -688,6 +695,7 @@ def spark_data_flow():
 
     return prd_rdd
 
+
 def get_spark_session():   
     conf = SparkConf()
     conf.setMaster('yarn-client')
@@ -706,12 +714,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_company_node") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     prd_rdd = spark_data_flow()
     
@@ -769,9 +778,9 @@ if __name__ == '__main__':
     # 从 dw.qyxx_basic 表中读取公司信息，与上面的公司信息合并并且去重
     # 从 /user/wanxiang/step_three 读取人物节点的 node 信息，因为上面的公司中包含自然人，所以需要剔除
     # 从 /user/wanxiang/step_two 读取事件节点的 node 信息，有些事件与公司 id 重复，需要将这些公司剔除
+    # 将上面获取的公司信息作为中间结果写入 /user/wanxiang/tmpdata/prd_basic_df 在地域节点和行业节点的相关操作中会用到
+    # 从 dw.qyxx_state_owned_enterprise_background 中读取公司是否为国企
     # 从 /user/wanxiang/tmpdata/tmp_role_df 读取事件信息，为公司添加属性值
     # 从 /user/wanxiang/inputdata/company_county_mapping_20180103.data 中读取地域信息，为公司添加属性值
     # 最终将公司节点的 node 写入 /user/wanxiang/step_four
     run()
-    
-    

@@ -30,12 +30,11 @@ def to_local():
                 local_path=LOCAL_DATA_PATH
             )
         )
-    
-    
+
     get_file('step_one', 'role_node')
     get_file('step_one', 'role_edge')
-    #get_file('step_one', 'isinvest_role_node')
-    #get_file('step_one', 'isinvest_role_edge')
+    # get_file('step_one', 'isinvest_role_node')
+    # get_file('step_one', 'isinvest_role_edge')
     print "step_one sucess !!"
 
     get_file('step_two', 'event_node')
@@ -65,9 +64,8 @@ def to_local():
     get_file('step_eight', 'email_node')
     get_file('step_eight', 'email_edge')
     print "step_eight sucess !!"
-    
-    
-    
+
+
 LOCAL_DATA_PATH = '/data1/wanxiangneo4j/neo4j-enterprise-3.2.6/import/'
 RELATION_VERSION = '20180627'
 XGXX_RELATION = '20180627'

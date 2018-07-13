@@ -14,6 +14,7 @@ import numpy as np
 from collections import Counter, defaultdict
 import sys
 
+
 class MyThread(Thread):
 
     def __init__(self, obj, feature_index):
@@ -22,11 +23,12 @@ class MyThread(Thread):
         self.feature_index = feature_index
 
     def run(self):
-        self.result =  methodcaller(
+        self.result = methodcaller(
             'get_feature_{0}'.format(self.feature_index))(self.obj)
 
     def get_result(self):
         return self.result
+
 
 class MyThread2(Thread):
 
@@ -44,19 +46,19 @@ class MyThread2(Thread):
 
 
 class MyTimer(object):
-    def __init__(self,verbose=False):
-        self.verbose=verbose
+    def __init__(self, verbose=False):
+        self.verbose = verbose
  
     def __enter__(self):
-        self.start=time.time()
+        self.start = time.time()
         return self
  
-    def __exit__(self,*unused):
-        self.end=time.time()
-        self.secs=self.end-self.start
-        self.msecs=self.secs
+    def __exit__(self, *unused):
+        self.end = time.time()
+        self.secs = self.end-self.start
+        self.msecs = self.secs
         if self.verbose:
-            print"elapsed time: %f s"%self.msecs
+            print"elapsed time: %f s" % self.msecs
 
 
 def get_graph_data_2(driver, name):
@@ -64,7 +66,8 @@ def get_graph_data_2(driver, name):
         with session.begin_transaction() as tx:
             nodes = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH*1..6]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-
+                [:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH*1..6]-(b) 
                 with nodes(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
@@ -72,7 +75,8 @@ def get_graph_data_2(driver, name):
                 bbd_qyxx_id=bbd_qyxx_id)
             edges = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH*1..6]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-
+                [:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH*1..6]-(b) 
                 with relationships(p) as np UNWIND np AS x 
                 with DISTINCT x
                 RETURN x
@@ -80,36 +84,40 @@ def get_graph_data_2(driver, name):
                 bbd_qyxx_id=bbd_qyxx_id)
     return nodes, edges
 
+
 def get_graph_data(driver, name, cypher):
     with driver.session() as session:
         with session.begin_transaction() as tx:
             result = tx.run(cypher, name=name)
     return result
-    
+
+
 def format_graph_data(result1, result2):
-    '''构建属性图'''
+    """
+    构建属性图
+    """
     
     def init_graph(edge_list, node_list, is_directed=0):
-        #网络初始化
+        # 网络初始化
         if is_directed == 1:
             G = nx.DiGraph()
         elif is_directed == 2:
             G = nx.Graph()
 
-        #增加带属性的节点
+        # 增加带属性的节点
         for node in node_list:
             G.add_node(node[0], **node[1])
-        #增加带属性的边
+        # 增加带属性的边
         G.add_edges_from(edge_list)
         return G
         
     def get_node(row):
         row['x'].properties['labels'] = list(each_row['x'].labels)
-        return (row['x'].id, row['x'].properties)
+        return row['x'].id, row['x'].properties
 
     def get_edge(row):
         row['x'].properties['type'] = each_row['x'].type
-        return (row['x'].start, row['x'].end, row['x'].properties)
+        return row['x'].start, row['x'].end, row['x'].properties
 
     company_correlative_nodes = [
         get_node(each_row)
@@ -122,26 +130,24 @@ def format_graph_data(result1, result2):
 
     dig = init_graph(
             company_correlative_edges,
-            company_correlative_nodes, is_directed = 1)
+            company_correlative_nodes, is_directed=1)
 
     g = init_graph(
             company_correlative_edges, 
-            company_correlative_nodes, is_directed = 2)
+            company_correlative_nodes, is_directed=2)
     
     return dig, g
 
 
-
-
 class FeatureConstruction(object):
-    '''
+    """
     计算特征的函数集
-    '''      
+    """
 
     def __fault_tolerant(func):
-        '''
+        """
         一个用于容错的装饰器
-        '''
+        """
         @classmethod
         def wappen(cls, *args, **kwargs):
             try:
@@ -151,13 +157,12 @@ class FeatureConstruction(object):
                     "{func_name} has a errr : {excp}"
                 ).format(func_name=func.__name__, excp=e)
         return wappen    
-    
 
     @classmethod
     def get_feature_1(cls):
-        '''
+        """
         企业背景风险
-        '''
+        """
         one_relation_set = [
             node 
             for node, attr in cls.DIG.nodes(data=True)
@@ -171,7 +176,7 @@ class FeatureConstruction(object):
             node for node in shareholder 
             if cls.distance_dict[node] == 1
             and cls.DIG.node[node].get('isSOcompany', '') is True 
-            and cls.DIG.node[node].get('is_human', '') == False]
+            and cls.DIG.node[node].get('is_human', '') is False]
         ipo_company = [
             node for ndoe in shareholder
             if cls.DIG.node[node].get('is_ipo', '') != '-']
@@ -194,8 +199,7 @@ class FeatureConstruction(object):
         r_2 = is_common_address
         r_3 = out_degree_list[-1]
         r_4 = sum(out_degree_list[-3:])
-        
-        
+
         return dict(
             x=x,
             v=v,
@@ -209,9 +213,9 @@ class FeatureConstruction(object):
 
     @classmethod
     def get_feature_2(cls):
-        '''
+        """
         公司运营持续风险
-        '''
+        """
         import math
         
         def get_date(date):
@@ -225,14 +229,12 @@ class FeatureConstruction(object):
             (datetime.date.today() - get_date(attr.get('esdate', ''))).days 
             for node, attr in cls.DIG.nodes(data=True) 
             if 0 < cls.distance_dict[node] <= 3 
-            and attr.get('is_human', '') == False 
+            and attr.get('is_human', '') is False
             and attr.get('esdate', '') != '-']
         t_2 = round(np.average(esdate_relation_set), 2)
         
-        if (cls.DIG.node.get(cls.tarcompany, 0) and 
-                    tar_company):
-            t_1 = (datetime.date.today() - 
-                       tar_company).days 
+        if cls.DIG.node.get(cls.tarcompany, 0) and tar_company:
+            t_1 = (datetime.date.today() - tar_company).days
         else:
             t_1 = 0
        
@@ -240,7 +242,7 @@ class FeatureConstruction(object):
             (datetime.date.today() - get_date(attr.get('esdate', ''))).days 
             for node, attr in cls.DIG.nodes(data=True) 
             if cls.distance_dict[node] == 1
-            and attr.get('is_human', '') == False
+            and attr.get('is_human', '') is False
             and attr.get('esdate', '') != '-'
         ]
         t_3 = round(np.average(leagal_person_set), 2)
@@ -251,31 +253,30 @@ class FeatureConstruction(object):
             t_3=t_3 if not math.isnan(t_3) else 0,
             y=t_1
         )
-        
-        
+
     @classmethod
     def get_feature_xgxx(cls):
-        '''
+        """
         【计算基础数据】
         法律诉讼风险：开庭公告、裁判文书、非法集资裁判文书、法院公告、民间借贷
         行政处罚
         被执行风险
         异常经营风险：经营异常、吊销&注销
         银监会行政处罚
-        ''' 
+        """
         def get_certain_distance_all_info(distance, document_types):
-            '''
+            """
             总条数
-            '''
-            all_array = []
-            #处理某一个distance不存在节点的情况
+            """
+            all_array = list()
+            # 处理某一个distance不存在节点的情况
             all_array.append([0]*len(document_types))            
             for node, attr in cls.DIG.nodes(data=True):
-                if (attr.get('is_human', '') == False
+                if (attr.get('is_human', '') is False
                         and cls.distance_dict[node] == distance):
                     each_array = map(lambda x: x if x else 0, 
-                                     [int(attr.get(each_document, '0')) 
-                                     for each_document in document_types])
+                                     [int(attr.get(each_document, '0'))
+                                      for each_document in document_types])
                     all_array.append(each_array)
                 else:
                     continue
@@ -283,18 +284,18 @@ class FeatureConstruction(object):
             return documents_num
         
         def get_certain_distance_add_info(distance, document_types):
-            '''
+            """
             出现次数
-            '''
-            all_array = []
-            #处理某一个distance不存在节点的情况
+            """
+            all_array = list()
+            # 处理某一个distance不存在节点的情况
             all_array.append([0]*len(document_types))            
             for node, attr in cls.DIG.nodes(data=True):
-                if (attr.get('is_human', '') == False
+                if (attr.get('is_human', '') is False
                         and cls.distance_dict[node] == distance):
                     each_array = map(lambda x: 1 if x else 0, 
-                                     [int(attr.get(each_document, '0')) 
-                                     for each_document in document_types])
+                                     [int(attr.get(each_document, '0'))
+                                      for each_document in document_types])
                     all_array.append(each_array)
                 else:
                     continue
@@ -315,16 +316,16 @@ class FeatureConstruction(object):
                                                           xgxx_type)
             xgxx_add_num_list = get_certain_distance_add_info(each_distance, 
                                                               xgxx_type)
-            matrx[each_distance] = dict(zip(xgxx_type, xgxx_num_list)+
+            matrx[each_distance] = dict(zip(xgxx_type, xgxx_num_list) +
                                         zip(xgxx_add_type, xgxx_add_num_list))
             
         return matrx
     
     @classmethod
     def filter_xgxx_type(cls, tar_xgxx):
-        '''
+        """
         过滤相关信息
-        '''
+        """
         risk = dict()
         for each_distance, xgxx_statistics in cls.xgxx_distribution.iteritems():
             tar_xgxx_statistics = dict([
@@ -337,10 +338,10 @@ class FeatureConstruction(object):
 
     @classmethod
     def get_feature_3(cls):
-        '''
+        """
         1、法律诉讼风险：开庭公告、裁判文书、法院公告、民间借贷
         2、某度关联方中非法集资裁判文书总数
-        '''
+        """
         tar_xgxx = ['ktgg', 'zgcpwsw', 'rmfygg',
                     'ktgg_1', 'zgcpwsw_1', 'rmfygg_1']
         risk = cls.filter_xgxx_type(tar_xgxx)
@@ -356,25 +357,25 @@ class FeatureConstruction(object):
 
     @classmethod
     def get_feature_4(cls):
-        '''
+        """
         行政处罚风险
-        '''
+        """
         tar_xgxx = ['xzcf', 'xzcf_1']
         risk = cls.filter_xgxx_type(tar_xgxx)
         
         risk['z'] = round(
             np.dot(
-                map(sum, [risk[each_distance].values() 
-                        for each_distance in xrange(0, 7)]), 
+                map(sum, [risk[each_distance].values()
+                          for each_distance in xrange(0, 7)]),
                 [1., 1/2., 1/3., 1/4., 1/5., 1/6., 1/7.]), 2)
         
         return risk
     
     @classmethod
     def get_feature_5(cls):
-        '''
+        """
         被执行风险：被执行、失信被执行
-        '''
+        """
         tar_xgxx = ['zhixing', 'dishonesty', 'zhixing_1', 
                     'dishonesty_1']
         risk = cls.filter_xgxx_type(tar_xgxx)        
@@ -390,9 +391,9 @@ class FeatureConstruction(object):
         
     @classmethod
     def get_feature_6(cls):
-        '''
+        """
         异常经营风险
-        '''
+        """
         tar_xgxx = ['jyyc', 'jyyc_1']
         risk = cls.filter_xgxx_type(tar_xgxx)        
         
@@ -407,9 +408,9 @@ class FeatureConstruction(object):
         
     @__fault_tolerant
     def get_feature_7(cls):
-        '''
+        """
         实际控制人风险
-        '''
+        """
         def get_degree_distribution(is_human):
             some_person_sets = [
                 node
@@ -432,7 +433,7 @@ class FeatureConstruction(object):
         total_legal_num = len([
                 node 
                 for node, attr in cls.DIG.nodes(data=True) 
-                if attr.get('is_human', '') == False])
+                if attr.get('is_human', '') is False])
         
         risk = round(((
                     2*(nature_max_control + legal_max_control) + 
@@ -450,9 +451,9 @@ class FeatureConstruction(object):
 
     @__fault_tolerant
     def get_feature_8(cls):
-        '''
+        """
         公司扩张路径风险
-        '''
+        """
         def get_node_set(is_human):
             return Counter([
                     cls.distance_dict[node]
@@ -463,10 +464,9 @@ class FeatureConstruction(object):
             return Counter([
                     cls.distance_dict[node]
                     for node, attr in cls.DIG.nodes(data=True)
-                    if attr.get('is_human', '') == False
+                    if attr.get('is_human', '') is False
                     and attr[company_type] != '-'])
-        
-        
+
         nature_person_distribution = get_node_set('1')
         legal_person_distribution = get_node_set('0')
         so_company_distribution = get_node_set_two('isSOcompany')
@@ -513,9 +513,9 @@ class FeatureConstruction(object):
 
     @classmethod
     def get_feature_9(cls):
-        '''
+        """
         关联方中心集聚风险
-        '''
+        """
         one_relation_set = [
             node for node, attr in cls.DIG.nodes(data=True) 
             if cls.distance_dict[node] == 1]
@@ -525,18 +525,18 @@ class FeatureConstruction(object):
                 in cls.DIG.edges(one_relation_set, data=True) 
                 if des_node == cls.tarcompany 
                 and edge_attr.get('isinvest', '1') == '1'
-                and cls.DIG.node[src_node].get('is_human', '') == False])
+                and cls.DIG.node[src_node].get('is_human', '') is False])
         legal_person_subsidiary = len([
                 des_node 
                 for src_node, des_node, edge_attr 
                 in cls.DIG.edges(data=True) 
                 if src_node == cls.tarcompany 
                 and edge_attr.get('isinvest', '1') == '1'
-                and cls.DIG.node[des_node].get('is_human', '') == False])
+                and cls.DIG.node[des_node].get('is_human', '') is False])
         
-        risk =(
+        risk = (
             legal_person_subsidiary -
-            legal_person_shareholder )    
+            legal_person_shareholder)
         
         return dict(
             x=legal_person_subsidiary,
@@ -546,15 +546,15 @@ class FeatureConstruction(object):
 
     @classmethod
     def get_feature_10(cls):
-        '''
+        """
         关联方结构稳定风险
-        '''
+        """
         def get_relation_num():
             return Counter([
                     cls.distance_dict[node]
                     for node, attr in cls.DIG.nodes(data=True)])
         
-        #目标企业各个度的节点的数量
+        # 目标企业各个度的节点的数量
         relations_num = get_relation_num()
         relation_three_num = relations_num.get(3, 0)
         relation_two_num = relations_num.get(2, 0)
@@ -583,15 +583,15 @@ class FeatureConstruction(object):
     @classmethod
     def get_feature_11(cls):
         pass
-#==============================================================================
-#         '''
+# ==============================================================================
+#         """
 #         关联方地址集中度风险
-#         '''
+#         """
 #         legal_person_address = [
 #             attr['address'] 
 #             for node, attr in cls.DIG.nodes(data=True) 
 #             if cls.distance_dict[node] <= 3 
-#             and attr.get('is_human', '') == False]
+#             and attr.get('is_human', '') is False]
 #         c = Counter(
 #             filter(
 #                 lambda x: x is not None and len(x) >= 21,  
@@ -604,13 +604,13 @@ class FeatureConstruction(object):
 #             n=risk,
 #             y=risk
 #         )
-#==============================================================================
+# ==============================================================================
 
     @classmethod
     def get_feature_12(cls):
-        '''
+        """
         短期逐利风险
-        '''
+        """
         def get_date(date):
             try:
                 return datetime.datetime.strptime(date, '%Y-%M-%d').date()
@@ -618,10 +618,10 @@ class FeatureConstruction(object):
                 return datetime.date.today()
             
         def get_max_established(distance, timedelta):
-            '''
+            """
             获取在某distance关联方企业中，某企业在任意timedelta内投资成立公司数量的最大值
-            '''
-            #用于获取最大连续时间数，这里i的取值要仔细琢磨一下，这里输入一个时间差序列与时间差
+            """
+            # 用于获取最大连续时间数，这里i的取值要仔细琢磨一下，这里输入一个时间差序列与时间差
             def get_date_density(difference_list, timedelta):
                 time_density_list = []
                 for index, date in enumerate(difference_list):
@@ -635,14 +635,14 @@ class FeatureConstruction(object):
                         time_density_list.append(i)
                     else:
                         continue
-                return max(time_density_list) if len(time_density_list) >0 else 0            
+                return max(time_density_list) if len(time_density_list) > 0 else 0
 
-            #distance所有节点集合
+            # distance所有节点集合
             relation_set = [
                 node 
                 for node, attr in cls.DIG.nodes(data=True) 
                 if cls.distance_dict[node] == distance]
-            investment_dict = defaultdict(lambda : [])     
+            investment_dict = defaultdict(lambda: [])
             
             if len(cls.DIG.edges) > 1:
                 for src_node, des_node, edge_attr in (
@@ -650,25 +650,25 @@ class FeatureConstruction(object):
                     if (edge_attr.get('is_invest', '0') == '1' 
                             and cls.distance_dict[node] == distance
                             and cls.DIG.node[des_node].get('esdate', '') != '-'
-                            and cls.DIG.node[src_node].get('is_human', '') == False):
-                        #将所有节点投资的企业的成立时间加进列表中
+                            and cls.DIG.node[src_node].get('is_human', '') is False):
+                        # 将所有节点投资的企业的成立时间加进列表中
                         investment_dict[src_node].append(
                             get_date(cls.DIG.node[des_node].get('esdate', '')))
              
-            #目标企业所有节点所投资的企业时间密度字典
+            # 目标企业所有节点所投资的企业时间密度字典
             all_date_density_dict = {}
             
             for node, date_list in investment_dict.iteritems():
-                #构建按照时间先后排序的序列
+                # 构建按照时间先后排序的序列
                 date_strp_list = sorted(date_list)
                 if len(date_strp_list) > 1:
-                    #构建时间差的序列，例如：[256, 4, 5, 1, 2, 33, 6, 5, 4, 73]
+                    # 构建时间差的序列，例如：[256, 4, 5, 1, 2, 33, 6, 5, 4, 73]
                     date_difference_list = [
                         (date_strp_list[index + 1] - date_strp_list[index]).days 
-                        for index in range(len(date_strp_list) -1)]
-                    #计算某法人节点在timedelta天之内有多少家公司成立
+                        for index in range(len(date_strp_list) - 1)]
+                    # 计算某法人节点在timedelta天之内有多少家公司成立
                     es_num = get_date_density(date_difference_list, timedelta)
-                    if all_date_density_dict.has_key(es_num):
+                    if es_num in all_date_density_dict:
                         all_date_density_dict[es_num].append(node)
                     else:
                         all_date_density_dict[es_num] = [node]              
@@ -679,8 +679,7 @@ class FeatureConstruction(object):
             
             return max_num
         
-        x = [get_max_established(each_distance, 180) 
-                for each_distance in xrange(0, 7)]
+        x = [get_max_established(each_distance, 180) for each_distance in xrange(0, 7)]
         
         legal_person_num = sum([
             1 
@@ -700,36 +699,33 @@ class FeatureConstruction(object):
             z=risk
         )
 
-
-
     @classmethod
     def get_some_feature(cls, dig, tar_id, distance_dict, feature_nums):
-        #创建类变量
+        # 创建类变量
         cls.tarcompany = tar_id
         cls.DIG = dig
         cls.distance_dict = distance_dict
         cls.xgxx_distribution = cls.get_feature_xgxx()
         
         feature_list = [
-            ('feature_{0}'.format(feature_index), 
-                     methodcaller('get_feature_{0}'.format(feature_index))(cls))
+            ('feature_{0}'.format(feature_index),
+             methodcaller('get_feature_{0}'.format(feature_index))(cls))
             for feature_index in feature_nums]
         feature_list.append(('company_name', cls.tarcompany))
         
         return dict(feature_list)
 
-
     @classmethod
     def multi_thread_feature(cls, dig, tar_id, distance_dict, feature_nums):
-        #创建类变量
+        # 创建类变量
         cls.tarcompany = tar_id
         cls.DIG = dig
         cls.distance_dict = distance_dict
         cls.xgxx_distribution = cls.get_feature_xgxx()
         
         feature_list = [
-            ('feature_{0}'.format(feature_index), 
-                     MyThread(cls, feature_index))
+            ('feature_{0}'.format(feature_index),
+             MyThread(cls, feature_index))
             for feature_index in feature_nums]
         map(lambda (k, t): t.start(), feature_list)
         map(lambda (k, t): t.join(), feature_list)
@@ -738,7 +734,7 @@ class FeatureConstruction(object):
         
         return dict(result)
 
-#==============================================================================
+# ==============================================================================
 # uri = 'bolt://10.28.102.32:7687'
 # my_driver = GraphDatabase.driver(uri, auth=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB"))
 # 
@@ -751,7 +747,7 @@ class FeatureConstruction(object):
 #     result1, result2 = get_graph_data_2(my_driver, name)
 #     DIG, G = format_graph_data(result1, result2)
 #     
-#     #获得目标公司分布
+#     # 获得目标公司分布
 #     for node, attr in DIG.nodes(data=True):
 #         if attr['name'] == name:
 #             tar_id = node
@@ -763,29 +759,28 @@ class FeatureConstruction(object):
 #     
 #     des_time = time.time()
 #     return jsonify(dict(features, **{'cost_time': round(des_time - src_time, 3)}))
-#==============================================================================
-
+# ==============================================================================
 
 
 if __name__ == '__main__':
-    #在不考虑网络网络的情况下，创建连接的时间在0.7s左右    
+    # 在不考虑网络网络的情况下，创建连接的时间在0.7s左右
     
     uri = 'bolt://10.28.102.32:7687'
     my_driver = GraphDatabase.driver(uri, auth=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB"))
     bbd_qyxx_id = 'aa3c994d90c2453d85748625ff5a9e86'
 
-#==============================================================================
+# ==============================================================================
 #     #作为web app                
 #     #app.debug = True
 #     app.run(host='0.0.0.0', port=9001)
-#==============================================================================
+# ==============================================================================
     
-    #作为脚本运行
-#==============================================================================
+    # 作为脚本运行
+# ==============================================================================
 #     name = sys.argv[1].decode('utf-8')
-#==============================================================================
+# ==============================================================================
     
-#==============================================================================
+# ==============================================================================
 #     with MyTimer(True):
 #             
 #         t1 = MyThread(my_driver,name,cypher_one)
@@ -799,11 +794,10 @@ if __name__ == '__main__':
 #         print len(t1.get_result().data())
 #         print len(t2.get_result().data())
 #     
-#==============================================================================
+# ==============================================================================
     
     with MyTimer(True):
         result1, result2 = get_graph_data_2(my_driver, bbd_qyxx_id)
-
 
     with MyTimer(True):
         DIG, G = format_graph_data(result1, result2)
@@ -812,13 +806,13 @@ if __name__ == '__main__':
                 tar_id = node
         distance_dict = nx.shortest_path_length(G, source=tar_id)
         
-#==============================================================================
+# ==============================================================================
 #     with MyTimer(True):
 #         features = FeatureConstruction.multi_thread_feature(
 #             DIG, tar_id, distance_dict, [_ for _ in range(1, 13)]
 #         )    
 #         print features
-#==============================================================================
+# ==============================================================================
 
     with MyTimer(True):
         features = FeatureConstruction.get_some_feature(

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 region_node_and_edge.py {xgxx_relation} {relation_version}
-'''
+"""
 
 import sys
 import os
@@ -20,22 +20,29 @@ from pyspark.sql import functions as fun, types as tp
 
 
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def get_region_label():
     return 'Entity;Region'
+
 
 def spark_data_flow():
     get_region_label_udf = fun.udf(get_region_label, tp.StringType())
@@ -57,9 +64,8 @@ def spark_data_flow():
     ).dropDuplicates(
         ['company_county']
     )    
-    
 
-    # 获取地域节点的唯一ID
+    # 获取地域节点的唯一ID（省、市、区各自的唯一ID）
     region_id_df = mapping_df.where(
         mapping_df.county.isNotNull()
     ).select(
@@ -96,7 +102,7 @@ def spark_data_flow():
         'count', 'company_num'
     )
     
-    # 各省份分布
+    # 各省份分布（mapping_df 后加一列，表示这个地区的公司总数）
     tmp_region_df = mapping_df.join(
         raw_region_df,
         'company_county',
@@ -106,7 +112,8 @@ def spark_data_flow():
     ).dropDuplicates(
         ['company_county']
     ).cache()
-    
+
+    # 每个省、市、区的公司总数
     tmp_region_2_df = tmp_region_df.groupBy(
         'province'
     ).agg(
@@ -124,9 +131,8 @@ def spark_data_flow():
             {'company_num': 'sum'}
         )
     )
-    
-    
-    # 输出
+
+    # 输出 node（地区编码、公司总数、地区名称、节点创建时间、节点更新时间、标签）
     prd_region_node_df = tmp_region_2_df.join(
         region_id_df,
         tmp_region_2_df.province == region_id_df.region
@@ -145,13 +151,12 @@ def spark_data_flow():
     ).dropDuplicates(
         ['region_code:ID']
     ).cache()
-    
 
     '''
     地域节点与其他节点的关系
     '''
 
-    # 企-区业关系
+    # 区-企业关系
     prd_region_edge_1_df = prd_basic_df.join(
         mapping_df.where(
             mapping_df.county.isNotNull()
@@ -208,8 +213,7 @@ def spark_data_flow():
     # 事件-区域关系
     # 由于这个关系不好解析，并且玩法太多，这里暂时不管
     # 后面如果要拿来讲故事，那么可以手工构建该类关系
-    prd_region_edge_4_df = ''
-
+    # prd_region_edge_4_df = ''
 
     prd_region_edge_df = prd_region_edge_1_df.union(
         prd_region_edge_2_df
@@ -218,6 +222,7 @@ def spark_data_flow():
     )
 
     return prd_region_node_df, prd_region_edge_df
+
 
 def get_spark_session():   
     conf = SparkConf()
@@ -237,12 +242,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_region_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     prd_region_node_df, prd_region_edge_df = spark_data_flow()
 
@@ -275,10 +281,11 @@ if __name__ == '__main__':
     IN_PATH = '/user/wanxiang/inputdata/'
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_five/'
-    
-    #sparkSession
+
+    # sparkSession
     spark = get_spark_session()    
-    
+
+    # 从 /user/wanxiang/tmpdata/prd_basic_df 读取公司信息
+    # 从 /user/wanxiang/inputdata/company_county_mapping_20180103.data 读取地域信息
+    # 将地区的 node、地区与地区之间的 edge、地区与公司之间的 edge 作为最后结果写入 /user/wanxiang/step_five
     run()
-    
-    

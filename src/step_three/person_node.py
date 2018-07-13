@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 person_node.py {xgxx_relation} {relation_version} {database}
-'''
+"""
 import sys
 import os
 import re
@@ -18,25 +18,33 @@ from pyspark.sql.types import StructField, StructType, StringType
 
 
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def is_human():
     return True
 
+
 def get_person_label():
     return 'Entity;Person'
+
 
 def get_label(x):
     try:
@@ -44,10 +52,11 @@ def get_label(x):
     except:
         return ''
 
+
 def tmp_spark_data_flow():
-    '''
+    """
     中间结果，后面“企业节点”计算也会用到
-    '''
+    """
     role_node_struct = StructType([
         StructField("bbd_role_id", StringType(), True),
         StructField("role_name", StringType(), True),
@@ -98,18 +107,19 @@ def tmp_spark_data_flow():
     )
 
     os.system(
-        "hadoop fs -rmr {path}/tmp_role_df/{version}".format(path=TMP_PATH, 
-                                              version=RELATION_VERSION))
+        "hadoop fs -rmr {path}/tmp_role_df/{version}".format(path=TMP_PATH,
+                                                             version=RELATION_VERSION))
     tmp_role_df.write.parquet(
         "{path}/tmp_role_df/{version}".format(path=TMP_PATH, 
                                               version=RELATION_VERSION))
+
 
 def spark_data_flow():
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     get_person_label_udf = fun.udf(get_person_label, tp.StringType())
     is_human_udf = fun.udf(is_human, tp.BooleanType())
-    get_label_udf = fun.udf(get_label , tp.StringType())
+    get_label_udf = fun.udf(get_label, tp.StringType())
 
     raw_person_df = spark.sql(
         '''
@@ -157,8 +167,7 @@ def spark_data_flow():
     ).withColumnRenamed(
         'START_ID', 'bbd_qyxx_id'
     ).cache()
-    
-    
+
     prd_person_df = tid_person_df.join(
         tmp_dwtzxx_df,
         tmp_dwtzxx_df.bbd_qyxx_id == tid_person_df.b,
@@ -191,6 +200,7 @@ def spark_data_flow():
     
     return prd_person_df
 
+
 def get_spark_session():   
     conf = SparkConf()
     conf.setMaster('yarn-client')
@@ -209,12 +219,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_person_node") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     tmp_spark_data_flow()
     prd_person_df = spark_data_flow()
@@ -234,7 +245,6 @@ def run():
     
 if __name__ == '__main__':
     # 输入参数
-    
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     DATABASE = sys.argv[3]
@@ -242,7 +252,7 @@ if __name__ == '__main__':
     IN_PATH = '/user/wanxiang/step_one/'
     OUT_PATH = '/user/wanxiang/step_three/'
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
 
     # 从 /user/wanxiang/step_one 中读取角色节点信息，用于计算人物节点的 dwtzxx 属性
@@ -250,6 +260,3 @@ if __name__ == '__main__':
     # 从 off_line_relations 中读取人物信息，添加 dwtzxx 属性
     # 最后结果人物的 node 写入 /user/wanxiang/step_three
     run()
-    
-    
-    

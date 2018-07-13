@@ -28,29 +28,31 @@ def get_graph_data_2(driver, bbd_qyxx_id):
     
     
 def format_graph_data(result1, result2):
-    '''构建属性图'''
+    """
+    构建属性图
+    """
     
     def init_graph(edge_list, node_list, is_directed=0):
-        #网络初始化
+        # 网络初始化
         if is_directed == 1:
             G = nx.MultiDiGraph()
         elif is_directed == 2:
             G = nx.MultiGraph()
 
-        #增加带属性的节点
+        # 增加带属性的节点
         for node in node_list:
             G.add_node(node[0], **node[1])
-        #增加带属性的边
+        # 增加带属性的边
         G.add_edges_from(edge_list)
         return G
         
     def get_node(row):
         row['x'].properties['labels'] = list(each_row['x'].labels)
-        return (row['x'].id, row['x'].properties)
+        return row['x'].id, row['x'].properties
 
     def get_edge(row):
         row['x'].properties['type'] = each_row['x'].type
-        return (row['x'].start, row['x'].end, row['x'].properties)
+        return row['x'].start, row['x'].end, row['x'].properties
 
     company_correlative_nodes = [
         get_node(each_row)
@@ -70,6 +72,7 @@ def format_graph_data(result1, result2):
             company_correlative_nodes, is_directed = 2)
     return dig, g, company_correlative_nodes, company_correlative_edges
 
+
 def get_graph_structure(node_data, edge_data, out_file):
     result = dict(
         node_data=node_data,
@@ -80,7 +83,7 @@ def get_graph_structure(node_data, edge_data, out_file):
     
 
 if __name__ == '__main__':
-    #在不考虑网络网络的情况下，创建连接的时间在0.7s左右    
+    # 在不考虑网络网络的情况下，创建连接的时间在0.7s左右
     
     uri = 'bolt://10.28.102.32:7687'
     my_driver = GraphDatabase.driver(uri, auth=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB"))
@@ -90,18 +93,14 @@ if __name__ == '__main__':
     nodes, edges = get_graph_data_2(my_driver, bbd_qyxx_id)
     dig, g, node_data, edge_data = format_graph_data(nodes, edges)
 
-
     # 计算距离
     for node, attr in dig.nodes(data=True):
         if attr.get('bbd_qyxx_id', '') == bbd_qyxx_id:
             tar_id = node
     distance_dict = nx.shortest_path_length(g, source=tar_id)
-    
-    
+
     # 将图结构保存成一个json
-#==============================================================================
+# ==============================================================================
 #     out_file='graph_structure_20170926.json'
 #     get_graph_structure(node_data, edge_data, out_file)
-#==============================================================================
-    
-    
+# ==============================================================================
