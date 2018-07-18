@@ -137,7 +137,10 @@ def spark_data_flow():
         company_industry,
         regexp_replace(company_companytype,'\"','') company_companytype,
         company_gis_lat,
-        company_gis_lon
+        company_gis_lon,
+        regcap,
+        regno,
+        credit_code
         FROM
         dw.qyxx_basic
         WHERE
@@ -164,7 +167,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         {database}.off_line_relations 
         WHERE 
@@ -193,7 +199,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         {database}.off_line_relations 
         WHERE 
@@ -222,7 +231,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         tid_qyxx_fzjg_merge
         '''
@@ -246,7 +258,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         tid_qyxx_fzjg_merge
         '''
@@ -270,7 +285,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         tmp_xgxx_relation_df
         '''
@@ -294,7 +312,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         raw_event_df
         '''
@@ -318,7 +339,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         dw.name
         WHERE
@@ -385,7 +409,10 @@ def spark_data_flow():
         tmp_company_all_df.company_industry,
         tmp_company_all_df.company_companytype,
         tmp_company_all_df.company_gis_lat,
-        tmp_company_all_df.company_gis_lon
+        tmp_company_all_df.company_gis_lon,
+        tmp_company_all_df.regcap,
+        tmp_company_all_df.regno,
+        tmp_company_all_df.credit_code
     ).cache()
 
     # 数据清洗, 该中间结果很重要，是后续构造节点的关键,因此需要落地
@@ -410,7 +437,8 @@ def spark_data_flow():
     ).na.fill(
         {'regcap_amount': 0, 'realcap_amount': 0,
          'company_gis_lat': 0, 'company_gis_lon': 0,
-         'ipo_company': '-'}
+         'ipo_company': '-', 'regcap': '-',
+         'regno': '-', 'credit_code': '-'}
     ).fillna(
         '-'
     ).where(
@@ -674,6 +702,9 @@ def spark_data_flow():
             row['regcap_currency'],
             str(row['realcap_amount']),
             row['realcap_currency'],
+            row['regcap'],
+            row['regno'],
+            row['credit_code'],
             str(row['create_time']),
             str(row['update_time']),
             'Entity;Company'
