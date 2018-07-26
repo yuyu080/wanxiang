@@ -48,12 +48,12 @@ CREATE INDEX ON :Contact(bbd_contact_id)
 #### 2、确定版本号修改work_flow中的参数，修改规则详见脚本注释， IS_HISTORY设置为False
 #### 3、计算、生成数据库文件方式同离线图库加载流程
 #### 4、找产品、运维确认上线时间、情况，待历史库加载完成后，更新redis中的元数据：删除老板数据库的地址，插入新数据库的地址，保留6个版本。例如：
-import redis
-pool = redis.ConnectionPool(host='10.28.60.15', port=26382, 
-                            password='wanxiang', db=0)
-r = redis.Redis(connection_pool=pool)
-r.set('wx_neo4j_his_info.201806', 'bolt://10.28.62.206:7687')
-r.delete('wx_neo4j_his_info.201712')
+import redis   
+pool = redis.ConnectionPool(host='10.28.60.15', port=26382,    
+                            password='wanxiang', db=0)   
+r = redis.Redis(connection_pool=pool)   
+r.set('wx_neo4j_his_info.201806', 'bolt://10.28.62.206:7687')   
+r.delete('wx_neo4j_his_info.201712')   
 
 ## redis缓存加载流程
 
