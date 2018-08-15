@@ -110,6 +110,13 @@ def spark_data_flow():
                              version=RELATION_VERSION))
     tmp_xgxx_relation_df.createOrReplaceTempView('tmp_xgxx_relation_df')
 
+    legal_enterprise_rel_df = spark.read.parquet(
+        ('{path}/'
+         'legal_enterprise_rel_df/'
+         '{version}').format(path=TMP_PATH,
+                             version=RELATION_VERSION))
+    legal_enterprise_rel_df.createOrReplaceGlobalTempView('legal_enterprise_rel_df')
+
     raw_event_df = spark.read.parquet(
         ('{path}/'
          'raw_event_df/'
@@ -293,8 +300,35 @@ def spark_data_flow():
         tmp_xgxx_relation_df
         '''
     )
-    
+
     tmp_company_6_df = spark.sql(
+        '''
+        SELECT 
+        bbd_qyxx_id,
+        company_name,
+        '-' ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' company_enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_companytype,
+        '0' company_gis_lat,
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
+        FROM 
+        legal_enterprise_rel_df
+        '''
+    )
+    
+    tmp_company_7_df = spark.sql(
         '''
         SELECT 
         bbd_qyxx_id,
@@ -321,7 +355,7 @@ def spark_data_flow():
         '''
     )
     
-    tmp_company_7_df = spark.sql(
+    tmp_company_8_df = spark.sql(
         '''
         SELECT 
         bbd_qyxx_id,
@@ -376,6 +410,10 @@ def spark_data_flow():
         )
     ).union(
         tmp_company_7_df.withColumn(
+            'weight', fun.udf(lambda x: 2, tp.IntegerType())('bbd_qyxx_id')
+        )
+    ).union(
+        tmp_company_8_df.withColumn(
             'weight', fun.udf(lambda x: 1, tp.IntegerType())('bbd_qyxx_id')
         )
     ).withColumn(
@@ -802,7 +840,8 @@ if __name__ == '__main__':
     spark = get_spark_session()
 
     # 从 /user/wanxiang/tmpdata/tid_qyxx_fzjg_merge 读取分支机构中的公司信息
-    # 从 /user/wanxiang/tmpdata/tmp_xgxx_relation_df 和 /user/wanxiang/tmpdata/raw_event_df 读取事件信息中的公司信息
+    # 从 /user/wanxiang/tmpdata/tmp_xgxx_relation_df、 /user/wanxiang/tmpdata/legal_enterprise_rel_df
+    # 和 /user/wanxiang/tmpdata/raw_event_df 读取事件信息中的公司信息
     # 从 wanxiang.off_line_relations 表中读取公司信息
     # 从 dw.name 表中读取公司信息
     # 将上面所有公司信息做 union

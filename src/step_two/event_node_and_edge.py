@@ -84,6 +84,13 @@ def get_xgxx_id(bbd_qyxx_id, bbd_unique_id):
     return xgxx_id
 
 
+def new_to_old(bbd_table):
+    bbd_table_dict = {"legal_dishonest_persons_subject_to_enforcement": "dishonesty",
+                      "legal_persons_subject_to_enforcement": "zhixing",
+                      "legal_court_notice": "rmfygg"}
+    return bbd_table_dict.get(bbd_table, bbd_table)
+
+
 def raw_spark_data_flow():
     """
     STEP 0. 创建table_list与col_dict, 明确需要哪些输入表
@@ -112,7 +119,6 @@ def raw_spark_data_flow():
 
     table_list = [
         'dcos',
-        'dishonesty',
         'ktgg',
         'overseas_investment',
         'qylogo',
@@ -122,7 +128,6 @@ def raw_spark_data_flow():
         'qyxx_wanfang_zhuanli',
         'recruit',
         'rjzzq',
-        'rmfygg',
         'sfpm_taobao',
         'shgy_tdcr',
         'shgy_zhaobjg',
@@ -132,7 +137,6 @@ def raw_spark_data_flow():
         'xgxx_shangbiao',
         'xzcf',
         'zgcpwsw',
-        'zhixing',
         'zpzzq',
         'qyxx_bgxx',
         'qyxx_liquidation',
@@ -297,9 +301,72 @@ def tmp_spark_data_flow(TABLE_DICT):
     )
 
 
+def rel_event_data_flow():
+    """
+    STEP 2. 获取新表的事件信息
+    """
+    get_standard_date_udf = fun.udf(get_standard_date, tp.StringType())
+    new_to_old_udf = fun.udf(new_to_old, tp.StringType())
+
+    legal_enterprise_rel_df = spark.sql(
+        """
+        SELECT
+        '' id,
+        bbd_qyxx_id,
+        bbd_xgxx_id,
+        bbd_table,
+        0 id_type,
+        dt,
+        CAST(sort_date AS string) event_time,
+        entity_name company_name
+        FROM
+        dw.{table_name}
+        WHERE
+        dt='{version}'
+        """.format(version=XGXX_RELATION,
+                   table_name='legal_enterprise_rel')
+    ).fillna(
+        '0'
+    ).fillna(
+        0
+    ).replace(
+        'null', ''
+    ).replace(
+        'NULL', ''
+    ).dropDuplicates(
+        ['bbd_qyxx_id', 'bbd_xgxx_id', 'bbd_table']
+    ).select(
+        'id',
+        'bbd_qyxx_id',
+        'bbd_xgxx_id',
+        new_to_old_udf('bbd_table').alias('bbd_table'),
+        'id_type',
+        get_standard_date_udf('event_time').alias('event_time'),
+        'dt',
+        'company_name'
+    )
+
+    os.system(
+        ("hadoop fs -rmr "
+         "{path}/"
+         "legal_enterprise_rel_df/{version}").format(path=TMP_PATH,
+                                                  version=RELATION_VERSION))
+
+    legal_enterprise_rel_df.where(
+        legal_enterprise_rel_df.event_time <= FORMAT_RELATION_VERSION
+    ).coalesce(
+        300
+    ).write.parquet(
+        ("{path}/"
+         "legal_enterprise_rel_df/{version}"
+         ).format(path=TMP_PATH,
+                  version=RELATION_VERSION)
+    )
+
+
 def tid_spark_data_flow(table_list, filter_list, table_dict):
     """
-    STEP 2. 构建具体事件的df，并将其合并，获取event_time
+    STEP 3. 构建具体事件的df，并将其合并，获取event_time
     """
     get_standard_date_udf = fun.udf(get_standard_date, tp.StringType())
     
@@ -416,7 +483,7 @@ def tid_spark_data_flow(table_list, filter_list, table_dict):
 
 def prd_spark_data_flow():
     """
-    STEP 3.0 raw_event_df与xgxx_relation作join明确每个关系的时间
+    STEP 4.0 raw_event_df与xgxx_relation作join明确每个关系的时间
     """
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
@@ -435,6 +502,14 @@ def prd_spark_data_flow():
          'tmp_xgxx_relation_df/'
          '{version}').format(path=TMP_PATH, 
                              version=RELATION_VERSION))
+
+    # 替换成新表的相关信息
+    legal_enterprise_rel_df = spark.read.parquet(
+        ('{path}/'
+         'legal_enterprise_rel_df/'
+         '{version}').format(path=TMP_PATH,
+                             version=RELATION_VERSION))
+
     
     # 合并
     os.system(
@@ -462,6 +537,16 @@ def prd_spark_data_flow():
             tmp_xgxx_relation_df.id_type,
             tmp_xgxx_relation_df.dt,
             tmp_xgxx_relation_df.event_time
+        )
+    ).union(
+        legal_enterprise_rel_df.select(
+            legal_enterprise_rel_df['id'],
+            legal_enterprise_rel_df.bbd_qyxx_id,
+            legal_enterprise_rel_df.bbd_xgxx_id,
+            legal_enterprise_rel_df.bbd_table,
+            legal_enterprise_rel_df.id_type,
+            legal_enterprise_rel_df.dt,
+            legal_enterprise_rel_df.event_time
         )
     ).withColumn(
         'event_timestamp', get_timestamp_udf('event_time')
@@ -582,11 +667,12 @@ def get_spark_session():
     
 def run():
     """
-    前三步在准备数据，事件节点的中间数据很重要，在后面也会用到
+    前四步在准备数据，事件节点的中间数据很重要，在后面也会用到
     由于balck_list事件比较特殊，因此需要单独计算
     """
     TABLE_LIST, FILTER_LIST, TABLE_DICT = raw_spark_data_flow()
     tmp_spark_data_flow(TABLE_DICT)
+    rel_event_data_flow()
     tid_spark_data_flow(TABLE_LIST, FILTER_LIST, TABLE_DICT)
     prd_spark_data_flow()
     prd_event_nodes_df, prd_event_edge_df = prd_spark_graph_data_flow()    
@@ -629,9 +715,9 @@ if __name__ == '__main__':
     # sparkSession
     spark = get_spark_session()
 
-    # 从各个事件表中读取事件信息， 将中间数据事件信息写入 /user/wanxiang/tmpdata/raw_event_df
-    # 和 /user/wanxiang/tmpdata/tmp_xgxx_relation_df
-    # 将上面两种事件合并后将中间数据写入 /user/wanxiang/tmpdata/tid_xgxx_relation_df
+    # 从各个事件表中读取事件信息， 将中间数据事件信息写入 /user/wanxiang/tmpdata/raw_event_df、
+    # /user/wanxiang/tmpdata/legal_enterprise_rel_df 和 /user/wanxiang/tmpdata/tmp_xgxx_relation_df
+    # 将上面三种事件合并后将中间数据写入 /user/wanxiang/tmpdata/tid_xgxx_relation_df
     # 上面的中间结果在创建公司节点及其属性时都会用到
     # 从 /user/wanxiang/tmpdata/tid_xgxx_relation_df 读取中间数据
     # 处理得到事件的 node 和 edge 写入 /user/wanxiang/step_two
