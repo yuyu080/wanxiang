@@ -115,7 +115,7 @@ def spark_data_flow():
          'legal_enterprise_rel_df/'
          '{version}').format(path=TMP_PATH,
                              version=RELATION_VERSION))
-    legal_enterprise_rel_df.createOrReplaceGlobalTempView('legal_enterprise_rel_df')
+    legal_enterprise_rel_df.createOrReplaceTempView('legal_enterprise_rel_df')
 
     raw_event_df = spark.read.parquet(
         ('{path}/'
