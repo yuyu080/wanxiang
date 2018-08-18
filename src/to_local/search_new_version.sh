@@ -24,7 +24,7 @@ do
                         version=`echo ${i} | grep -oP "(?<=/offline_signal/)(.*)"`
                         echo 'waiting for new version to be merged'
                         sleep 20
-                        python ./to_local.py ${version}
+                        python /data1/wanxiangneo4jpre/Wanxiang/src/to_local/to_local.py ${version}
                         echo 'merged complete'
                         break
                 fi
