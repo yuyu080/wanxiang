@@ -123,67 +123,15 @@ def step_eight():
                'result_eight', 'contact_node_and_edge.py', RELATION_VERSION)
 
 
-def to_local():
-    
-    def get_file(step_name, file_name):
-        local_file = LOCAL_DATA_PATH+file_name
-        if not os.path.exists(LOCAL_DATA_PATH):
-            os.makedirs(LOCAL_DATA_PATH)
-        if os.path.exists(local_file):
-            os.remove(local_file)
-            
-        os.system(
-            '''
-            hadoop fs -getmerge \
-            {path}/{step_name}/{version}/{file_name}/* \
-            {local_path}/{version}/{file_name}.data
-            '''.format(
-                path='/user/wanxiang/',
-                step_name=step_name,
-                version=RELATION_VERSION,
-                file_name=file_name,
-                local_path=LOCAL_DATA_PATH
-            )
-        )
-
-    get_file('step_one', 'role_node')
-    get_file('step_one', 'role_edge')
-# ==============================================================================
-#     get_file('step_one', 'isinvest_role_node')
-#     get_file('step_one', 'isinvest_role_edge')
-# ==============================================================================
-    print "step_one sucess !!"
-
-    get_file('step_two', 'event_node')
-    get_file('step_two', 'event_edge')
-    print "step_two sucess !!"
-    
-    get_file('step_three', 'person_node')
-    print "step_three sucess !!"
-    
-    get_file('step_four', 'company_node')
-    print "step_four sucess !!"
-    
-    get_file('step_five', 'region_node')
-    get_file('step_five', 'region_edge')
-    print "step_five sucess !!"
-    
-    get_file('step_six', 'industry_node')
-    get_file('step_six', 'industry_edge')
-    print "step_six sucess !!"
-    
-    get_file('step_seven', 'time_node')
-    get_file('step_seven', 'time_edge')
-    print "step_seven sucess !!"
-    
-    get_file('step_eight', 'phone_node')  
-    get_file('step_eight', 'phone_edge')
-    get_file('step_eight', 'email_node')
-    get_file('step_eight', 'email_edge')
-    print "step_eight sucess !!"
-
-
 def run():
+
+    subprocess.call(
+        '''
+        curl --request GET --url "https://sc.ftqq.com/{SCKEY}.send?text=开始生成离线数据";
+        '''.format(SCKEY='SCU18362T36dadf900509742623c554ff37500c765a37802f84f04'),
+        shell=True
+    )
+
     # 实时关联方与历史关联方存在不同的库，因此需要单独区分
     # 实时关联方需要新增一个流程，及解析关联方数据
     if not IS_HISTORY:
@@ -205,8 +153,16 @@ def run():
     # 离线专用加载的节点探测到这个目录下有文件夹生成，就开始新一轮的 getmerge 操作
     subprocess.call(
         '''
-        hadoop fs -mkdir hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION}
+        hadoop fs -mkdir hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
+        /data8/wanxiang/zhaoyunfeng/index_success_test.sh {RELATION_VERSION};
         '''.format(RELATION_VERSION=RELATION_VERSION),
+        shell=True
+    )
+
+    subprocess.call(
+        '''
+        curl --request GET --url "https://sc.ftqq.com/{SCKEY}.send?text=开始get_merge";
+        '''.format(SCKEY='SCU18362T36dadf900509742623c554ff37500c765a37802f84f04'),
         shell=True
     )
 
