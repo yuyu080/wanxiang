@@ -39,6 +39,15 @@ def is_success(result, step_name, file_name, relation_version):
     """
     if result:
         print "\n******************************\n"
+        # 将错误信息发送到个人微信
+        subprocess.call(
+            '''
+            curl --request GET --url "https://sc.ftqq.com/{SCKEY}.send?text={step_name}_{file_name}_has_an_error!";
+            '''.format(SCKEY='SCU18362T36dadf900509742623c554ff37500c765a37802f84f04',
+                       step_name=step_name,
+                       file_name=file_name),
+            shell=True
+        )
         sys.exit(
             '''
             {step_name}|{file_name}|{out_version} \
@@ -192,6 +201,15 @@ def run():
 #     to_local()
 # ==============================================================================
 
+    # 上面所有步骤成功后，在下面的目录下创建一个文件夹，表示离线数据已经生成
+    # 离线专用加载的节点探测到这个目录下有文件夹生成，就开始新一轮的 getmerge 操作
+    subprocess.call(
+        '''
+        hadoop fs -mkdir hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION}
+        '''.format(RELATION_VERSION=RELATION_VERSION),
+        shell=True
+    )
+
 
 if __name__ == '__main__':
     
@@ -201,8 +219,12 @@ if __name__ == '__main__':
     #  3、如果是离线计算‘历史图库’：RELATION_VERSION为版本号，XGXX_RELATION取最新的版本
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    RELATION_VERSION = '20180322'
-    XGXX_RELATION = '20180322'
+    if len(sys.argv == 2):
+        RELATION_VERSION = sys.argv[1]
+        XGXX_RELATION = sys.argv[1]
+    else:
+        RELATION_VERSION = '20180322'
+        XGXX_RELATION = '20180322'
     
     IS_HISTORY = False
     
