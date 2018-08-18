@@ -20,12 +20,10 @@ do
                 done
                 if [ ${flag} -eq 0 ]
                 then
-                        echo 'find new version'
+                        echo "new version found"
                         version=`echo ${i} | grep -oP "(?<=/offline_signal/)(.*)"`
-                        echo 'waiting for new version to be merged'
-                        sleep 20
-                        python /data1/wanxiangneo4jpre/Wanxiang/src/to_local/to_local.py ${version}
-                        echo 'merged complete'
+                        python /data1/wanxiangneo4jpre/Wanxiang/src/to_local/to_local.py ${version} > \
+                        /data1/wanxiangneo4jpre/to_local.log 2>&1
                         break
                 fi
         done
