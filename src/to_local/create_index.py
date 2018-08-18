@@ -7,7 +7,7 @@ version = sys.argv[1]
 
 subprocess.call(
     '''
-    ./start_check_index.sh {version}
+    bash ./start_check_index.sh {version}
     '''.format(version=version),
     shell=True
 )
