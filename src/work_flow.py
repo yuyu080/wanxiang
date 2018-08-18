@@ -176,7 +176,7 @@ if __name__ == '__main__':
     #  3、如果是离线计算‘历史图库’：RELATION_VERSION为版本号，XGXX_RELATION取最新的版本
     IN_PATH = './'
     LOCAL_DATA_PATH = '/data8/wanxiang/zhaoyunfeng/data/'
-    if len(sys.argv == 2):
+    if len(sys.argv) == 2:
         RELATION_VERSION = sys.argv[1]
         XGXX_RELATION = sys.argv[1]
     else:
