@@ -32,7 +32,8 @@ with driver.session() as session:
             if flag:
                 subprocess.call(
                     '''
-                    hadoop fs -mkdir hdfs://bbd43/tmp/success_{version}
+                    hadoop fs -mkdir hdfs://bbd43/tmp/success_{version};
+                    /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j stop;
                     '''.format(version=version),
                     shell=True)
             else:
