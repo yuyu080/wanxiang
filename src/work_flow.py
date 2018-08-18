@@ -153,6 +153,7 @@ def run():
     # 离线专用加载的节点探测到这个目录下有文件夹生成，就开始新一轮的 getmerge 操作
     subprocess.call(
         '''
+        hadoop fs -rmr hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
         hadoop fs -mkdir hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
         /data8/wanxiang/zhaoyunfeng/index_success_test.sh {RELATION_VERSION};
         '''.format(RELATION_VERSION=RELATION_VERSION),
