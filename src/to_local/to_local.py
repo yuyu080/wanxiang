@@ -134,7 +134,8 @@ try:
             cat /dev/null > /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/logs/neo4j.log;
             /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j restart;
             sleep 120;
-            python ./create_index.py {version} > create_index.log 2>&1
+            cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
+            python create_index.py {version} > create_index.log 2>&1
             '''.format(version=RELATION_VERSION),
             shell=True
         )
