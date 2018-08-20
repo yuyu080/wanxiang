@@ -92,36 +92,36 @@ try:
         shell=True
     )
 
-    import_path = "/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/"
 
     # 开始执行 import
     flag2 = subprocess.call(
         '''
+        cp /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/;
         /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j-admin import \
         --database graph_{version}.db \
-        --nodes {import_path}person_node.header,{import_path}person_node.data \
-        --nodes {import_path}role_node.header,{import_path}role_node.data \
-        --nodes {import_path}event_node.header,{import_path}event_node.data \
-        --nodes {import_path}company_node.header,{import_path}company_node.data \
-        --nodes {import_path}region_node.header,{import_path}region_node.data \
-        --nodes {import_path}industry_node.header,{import_path}industry_node.data \
-        --nodes {import_path}time_node.header,{import_path}time_node.data \
-        --nodes {import_path}phone_node.header,{import_path}phone_node.data \
-        --nodes {import_path}email_node.header,{import_path}email_node.data \
-        --relationships {import_path}role_edge.header,{import_path}role_edge.data \
-        --relationships {import_path}event_edge.header,{import_path}event_edge.data \
-        --relationships {import_path}region_edge.header,{import_path}region_edge.data \
-        --relationships {import_path}industry_edge.header,{import_path}industry_edge.data \
-        --relationships {import_path}time_edge.header,{import_path}time_edge.data \
-        --relationships {import_path}email_edge.header,{import_path}email_edge.data \
-        --relationships {import_path}phone_edge.header,{import_path}phone_edge.data \
+        --nodes person_node.header,person_node.data \
+        --nodes role_node.header,role_node.data \
+        --nodes event_node.header,event_node.data \
+        --nodes company_node.header,company_node.data \
+        --nodes region_node.header,region_node.data \
+        --nodes industry_node.header,industry_node.data \
+        --nodes time_node.header,time_node.data \
+        --nodes phone_node.header,phone_node.data \
+        --nodes email_node.header,email_node.data \
+        --relationships role_edge.header,role_edge.data \
+        --relationships event_edge.header,event_edge.data \
+        --relationships region_edge.header,region_edge.data \
+        --relationships industry_edge.header,industry_edge.data \
+        --relationships time_edge.header,time_edge.data \
+        --relationships email_edge.header,email_edge.data \
+        --relationships phone_edge.header,phone_edge.data \
         --ignore-missing-nodes=true \
         --ignore-duplicate-nodes=true \
         --quote=︻ \
         --high-io=true \
-        --report-file={import_path}import.report > \
-        {import_path}process.log
-        '''.format(version=RELATION_VERSION, import_path=import_path),
+        --report-file=import.report > \
+        process.log
+        '''.format(version=RELATION_VERSION),
         shell=True
     )
     if flag1 == flag2 == 0:
