@@ -5,12 +5,12 @@ import sys
 
 version = sys.argv[1]
 
-print "开始建索引......"
+sys.stdout("开始建索引......")
 
 subprocess.call(
     '''
     cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
-    bash ./start_check_index.sh {version}
+    nohup bash ./start_check_index.sh {version} &
     '''.format(version=version),
     shell=True
 )
