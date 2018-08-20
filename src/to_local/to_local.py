@@ -96,7 +96,7 @@ try:
     # 开始执行 import
     flag2 = subprocess.call(
         '''
-        cd /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/;
+        cd /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/{version};
         /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j-admin import \
         --database graph_{version}.db \
         --nodes person_node.header,person_node.data \
