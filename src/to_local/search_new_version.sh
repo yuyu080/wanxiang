@@ -22,8 +22,9 @@ do
                 then
                         echo "new version found"
                         version=`echo ${i} | grep -oP "(?<=/offline_signal/)(.*)"`
-                        python /data1/wanxiangneo4jpre/Wanxiang/src/to_local/to_local.py ${version} > \
-                        /data1/wanxiangneo4jpre/to_local.log 2>&1
+                        cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local
+                        python to_local.py ${version} > \
+                        to_local.log 2>&1
                         break
                 fi
         done
