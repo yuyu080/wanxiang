@@ -92,7 +92,6 @@ try:
         shell=True
     )
 
-
     # 开始执行 import
     flag2 = subprocess.call(
         '''
@@ -134,7 +133,8 @@ try:
             /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/conf/neo4j.conf;
             cat /dev/null > /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/logs/neo4j.log;
             /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j restart;
-            python ./create_index.py {version} > /data1/wanxiangneo4jpre/create_index.log 2>&1
+            sleep 120;
+            python ./create_index.py {version} > create_index.log 2>&1
             '''.format(version=RELATION_VERSION),
             shell=True
         )
