@@ -5,15 +5,6 @@ import sys
 
 version = sys.argv[1]
 
-sys.stdout("开始建索引......")
-
-subprocess.call(
-    '''
-    cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
-    nohup bash ./start_check_index.sh {version} &
-    '''.format(version=version),
-    shell=True
-)
 
 flag = subprocess.call(
     '''
@@ -45,6 +36,14 @@ flag = subprocess.call(
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Contact(bbd_contact_id);";
     '''
+)
+
+subprocess.call(
+    '''
+    cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
+    nohup bash ./start_check_index.sh {version} &
+    '''.format(version=version),
+    shell=True
 )
 
 if flag != 0:
