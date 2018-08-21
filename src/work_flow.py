@@ -158,7 +158,7 @@ def run():
         '''
         hadoop fs -rmr hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
         hadoop fs -mkdir hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
-        bash /data8/wanxiang/zhaoyunfeng/Wanxiang/src/index_success_test.sh {RELATION_VERSION};
+        bash /data8/wanxiang/zhaoyunfeng/Wanxiang/src/index_success_check.sh {RELATION_VERSION};
         '''.format(RELATION_VERSION=RELATION_VERSION),
         shell=True
     )
