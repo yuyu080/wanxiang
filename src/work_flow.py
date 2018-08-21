@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+在 src 路径下执行 nohup python work_flow.py {version} &
+离线数据生成好后在 HDFS 文件系统中创建一个文件夹让另一个节点能够知晓，并启动 index_success_check.sh 脚本
+"""
 
-import os
 import sys
 import subprocess
 

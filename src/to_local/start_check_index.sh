@@ -1,4 +1,5 @@
 #!/bin/bash
+# 每分钟执行一次 check_index.py 脚本，检查索引是否全部建好
 
 while sleep 60
 do

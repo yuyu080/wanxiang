@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+执行创建索引的命令，执行完后启动检查索引是否建好的脚本 start_check_index.sh
+"""
 
 import subprocess
 import sys

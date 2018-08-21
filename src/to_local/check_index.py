@@ -1,4 +1,8 @@
 # -*- coding: UTF-8 -*-
+"""
+每分钟被执行一次，检查索引是否全部建好。
+如果全部建好，则在 HDFS 文件系统创建一个文件夹，让另外的节点上的脚本能够知晓索引已建好。
+"""
 
 from neo4j.v1 import GraphDatabase
 import sys

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar 08 18:44:26 2018
-
-@author: Administrator
+离线加载专用节点上循环执行 search_new_version.sh 脚本，发现有新的版本可以 getmerge 时就启动 to_local.py 脚本。
+to_local.py 脚本将数据 getmerge 到本地，并执行 import 命令，import 成功后启动 create_index.py 脚本开始创建索引。
 """
 
 import os
