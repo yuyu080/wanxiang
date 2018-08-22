@@ -82,20 +82,21 @@ else:
 try:
     # 把 HDFS 上的文件 getmerge 到 Neo4j 的 import 目录下
     to_local()
+    NEO4J_HOME = "/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0"
     # 把 header 文件拷贝到相应目录下
     flag1 = subprocess.call(
         '''
         cp ./header/* \
-        /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/{version}
-        '''.format(version=RELATION_VERSION),
+        {NEO4J_HOME}/import/{version}
+        '''.format(NEO4J_HOME=NEO4J_HOME, version=RELATION_VERSION),
         shell=True
     )
 
     # 开始执行 import
     flag2 = subprocess.call(
         '''
-        cd /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/{version};
-        /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j-admin import \
+        cd {NEO4J_HOME}/import/{version};
+        {NEO4J_HOME}/bin/neo4j-admin import \
         --database graph_{version}.db \
         --nodes person_node.header,person_node.data \
         --nodes role_node.header,role_node.data \
@@ -119,23 +120,23 @@ try:
         --high-io=true \
         --report-file=import.report > \
         process.log
-        '''.format(version=RELATION_VERSION),
+        '''.format(NEO4J_HOME=NEO4J_HOME, version=RELATION_VERSION),
         shell=True
     )
     if flag1 == flag2 == 0:
         subprocess.call(
             '''
-            mv /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/conf/neo4j.conf \
-            /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/conf/neo4j.conf.bak;
+            mv {NEO4J_HOME}/conf/neo4j.conf \
+            {NEO4J_HOME}/conf/neo4j.conf.bak;
             sed '1c dbms.active_database=graph_{version}.db' \
-            /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/conf/neo4j.conf.bak > \
-            /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/conf/neo4j.conf;
-            cat /dev/null > /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/logs/neo4j.log;
-            /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j restart;
+            {NEO4J_HOME}/conf/neo4j.conf.bak > \
+            {NEO4J_HOME}/conf/neo4j.conf;
+            cat /dev/null > {NEO4J_HOME}/logs/neo4j.log;
+            {NEO4J_HOME}/bin/neo4j restart;
             sleep 120;
             cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
             python create_index.py {version} > create_index.log 2>&1
-            '''.format(version=RELATION_VERSION),
+            '''.format(NEO4J_HOME=NEO4J_HOME, version=RELATION_VERSION),
             shell=True
         )
     else:

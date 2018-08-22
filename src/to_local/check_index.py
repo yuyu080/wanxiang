@@ -13,6 +13,7 @@ conn_addr = "bolt://10.28.62.46:30050"
 user = "neo4j"
 passwd = "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC"
 
+NEO4J_HOME = "/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0"
 
 driver = GraphDatabase.driver(conn_addr, auth=(user, passwd))
 
@@ -37,8 +38,8 @@ with driver.session() as session:
                 subprocess.call(
                     '''
                     hadoop fs -mkdir hdfs://bbd43/tmp/success_{version};
-                    /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/neo4j stop;
-                    '''.format(version=version),
+                    {NEO4J_HOME}/bin/neo4j stop;
+                    '''.format(NEO4J_HOME=NEO4J_HOME, version=version),
                     shell=True)
             else:
                 sys.exit(1)

@@ -4,6 +4,7 @@
 
 new_version=`hadoop fs -ls hdfs://bbd43/user/wanxiang/offline_signal | awk '{print $8}' | sed '/^$/d'`
 old_version=${new_version}
+WORK_HOME='/data1/wanxiangneo4jpre'
 
 while sleep 600
 do
@@ -22,7 +23,7 @@ do
                 then
                         echo "new version found"
                         version=`echo ${i} | grep -oP "(?<=/offline_signal/)(.*)"`
-                        cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local
+                        cd ${WORK_HOME}/Wanxiang/src/to_local
                         python to_local.py ${version} > \
                         to_local.log 2>&1
                         break

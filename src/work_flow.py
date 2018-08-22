@@ -154,12 +154,13 @@ def run():
 
     # 上面所有步骤成功后，在下面的目录下创建一个文件夹，表示离线数据已经生成
     # 离线专用加载的节点探测到这个目录下有文件夹生成，就开始新一轮的 getmerge 操作
+    WORK_HOME = "/data8/wanxiang/zhaoyunfeng"
     subprocess.call(
         '''
         hadoop fs -rmr hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
         hadoop fs -mkdir hdfs:///user/wanxiang/offline_signal/{RELATION_VERSION};
-        bash /data8/wanxiang/zhaoyunfeng/Wanxiang/src/index_success_check.sh {RELATION_VERSION};
-        '''.format(RELATION_VERSION=RELATION_VERSION),
+        bash {WORK_HOME}/Wanxiang/src/index_success_check.sh {RELATION_VERSION};
+        '''.format(WORK_HOME=WORK_HOME, RELATION_VERSION=RELATION_VERSION),
         shell=True
     )
 

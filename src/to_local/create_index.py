@@ -7,47 +7,49 @@ import subprocess
 import sys
 
 version = sys.argv[1]
+NEO4J_HOME = "/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0"
+WORK_HOME = "/data1/wanxiangneo4jpre"
 
 print("start to create indexes")
 
 flag = subprocess.call(
     '''
-    /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+    {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Company(bbd_qyxx_id)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Person(bbd_qyxx_id)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Role(bbd_role_id)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Event(bbd_event_id)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Region(region_code)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Industry(industry_code)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Time(time)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Company(address)";
-     /data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/bin/cypher-shell \
+     {NEO4J_HOME}/bin/cypher-shell \
      -a bolt://10.28.62.46:30050 \
      -u neo4j -p fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC "CREATE INDEX ON :Contact(bbd_contact_id)";
-    ''',
+    '''.format(NEO4J_HOME=NEO4J_HOME),
     shell=True
 )
 
 subprocess.call(
     '''
-    cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
+    cd {WORK_HOME}/Wanxiang/src/to_local;
     nohup bash ./start_check_index.sh {version} &
-    '''.format(version=version),
+    '''.format(WORK_HOME=WORK_HOME, version=version),
     shell=True
 )
 

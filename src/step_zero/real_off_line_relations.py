@@ -57,7 +57,7 @@ def filter_bad_case(relation_type, des_id, source_isperson):
         return True
 
 
-def is_concat(destination_bbd_id,source_bbd_id,source_isperson):
+def is_concat(destination_bbd_id, source_bbd_id, source_isperson):
     """
     判断一条数据的 source_bbd_id 是否需要修改成 destination_bbd_id + '_' + source_bbd_id 的形式
     """
