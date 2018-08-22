@@ -350,7 +350,7 @@ def rel_event_data_flow():
         ("hadoop fs -rmr "
          "{path}/"
          "legal_enterprise_rel_df/{version}").format(path=TMP_PATH,
-                                                  version=RELATION_VERSION))
+                                                     version=RELATION_VERSION))
 
     legal_enterprise_rel_df.where(
         legal_enterprise_rel_df.event_time <= FORMAT_RELATION_VERSION
