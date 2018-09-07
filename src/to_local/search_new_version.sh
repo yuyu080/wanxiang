@@ -4,7 +4,7 @@
 
 new_version=`hadoop fs -ls hdfs://bbd43/user/wanxiang/offline_signal | awk '{print $8}' | sed '/^$/d'`
 old_version=${new_version}
-WORK_HOME='/data1/wanxiangneo4jpre'
+WORK_HOME='/home/wanxiangneo4jpre'
 
 while sleep 600
 do

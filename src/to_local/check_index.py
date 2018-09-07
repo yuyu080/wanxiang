@@ -13,7 +13,7 @@ conn_addr = "bolt://10.28.62.46:30050"
 user = "neo4j"
 passwd = "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfC"
 
-NEO4J_HOME = "/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0"
+NEO4J_HOME = "/home/wanxiangneo4jpre/neo4j-enterprise-3.4.7"
 
 driver = GraphDatabase.driver(conn_addr, auth=(user, passwd))
 

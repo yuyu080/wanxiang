@@ -69,7 +69,7 @@ def to_local():
     print "step_eight sucess !!"
 
 
-LOCAL_DATA_PATH = '/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0/import/'
+LOCAL_DATA_PATH = '/home/wanxiangneo4jpre/neo4j-enterprise-3.4.7/import/'
 
 if len(sys.argv) == 2:
     RELATION_VERSION = sys.argv[1]
@@ -82,7 +82,8 @@ else:
 try:
     # 把 HDFS 上的文件 getmerge 到 Neo4j 的 import 目录下
     to_local()
-    NEO4J_HOME = "/data1/wanxiangneo4jpre/neo4j-enterprise-3.4.0"
+    NEO4J_HOME = "/home/wanxiangneo4jpre/neo4j-enterprise-3.4.7"
+    WORK_HOME = "/home/wanxiangneo4jpre"
     # 把 header 文件拷贝到相应目录下
     flag1 = subprocess.call(
         '''
@@ -134,9 +135,9 @@ try:
             cat /dev/null > {NEO4J_HOME}/logs/neo4j.log;
             {NEO4J_HOME}/bin/neo4j restart;
             sleep 120;
-            cd /data1/wanxiangneo4jpre/Wanxiang/src/to_local;
+            cd {WORK_HOME}/Wanxiang/src/to_local;
             python create_index.py {version} > create_index.log 2>&1
-            '''.format(NEO4J_HOME=NEO4J_HOME, version=RELATION_VERSION),
+            '''.format(NEO4J_HOME=NEO4J_HOME, WORK_HOME=WORK_HOME, version=RELATION_VERSION),
             shell=True
         )
     else:
