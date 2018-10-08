@@ -191,4 +191,4 @@ if __name__ == '__main__':
     # 从 /user/wanxiang/tmpdata/prd_basic_df 读取公司信息
     # 自己创建一个二元组的 list 名为 industry_data，包含行业编码和行业名称，构建一个 DataFrame
     # 得到行业节点的 node 和行业节点与其他节点相连的 edge 写入 /user/wanxiang/step_six
-    run()
+    # run()
