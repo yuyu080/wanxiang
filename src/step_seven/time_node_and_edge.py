@@ -280,4 +280,4 @@ if __name__ == '__main__':
     # 构建年、月、日以及日的二级节点，获得时间节点的 node，时间节点与时间节点相连的 edge
     # 从 /user/wanxiang/tmpdata/tid_xgxx_relation_df 读取事件信息，获取事件与日的二级节点相连的 edge
     # 将这些 node 和 edge 写入 /user/wanxiang/step_seven
-    #run()
+    run()

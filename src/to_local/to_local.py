@@ -50,17 +50,17 @@ def to_local():
     get_file('step_four', 'company_node')
     print "step_four sucess !!"
     
-    # get_file('step_five', 'region_node')
-    # get_file('step_five', 'region_edge')
-    # print "step_five sucess !!"
-    #
-    # get_file('step_six', 'industry_node')
-    # get_file('step_six', 'industry_edge')
-    # print "step_six sucess !!"
-    #
-    # get_file('step_seven', 'time_node')
-    # get_file('step_seven', 'time_edge')
-    # print "step_seven sucess !!"
+    get_file('step_five', 'region_node')
+    get_file('step_five', 'region_edge')
+    print "step_five sucess !!"
+
+    get_file('step_six', 'industry_node')
+    get_file('step_six', 'industry_edge')
+    print "step_six sucess !!"
+
+    get_file('step_seven', 'time_node')
+    get_file('step_seven', 'time_edge')
+    print "step_seven sucess !!"
     
     get_file('step_eight', 'phone_node')  
     get_file('step_eight', 'phone_edge')
