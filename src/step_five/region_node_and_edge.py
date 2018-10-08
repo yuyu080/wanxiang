@@ -283,9 +283,9 @@ if __name__ == '__main__':
     OUT_PATH = '/user/wanxiang/step_five/'
 
     # sparkSession
-    spark = get_spark_session()    
+    spark = get_spark_session()
 
     # 从 /user/wanxiang/tmpdata/prd_basic_df 读取公司信息
     # 从 /user/wanxiang/inputdata/company_county_mapping_20180103.data 读取地域信息
     # 将地区的 node、地区与地区之间的 edge、地区与公司之间的 edge 作为最后结果写入 /user/wanxiang/step_five
-    run()
+    #run()
