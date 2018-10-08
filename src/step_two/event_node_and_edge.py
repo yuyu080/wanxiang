@@ -118,15 +118,11 @@ def raw_spark_data_flow():
     # )
 
     table_list = [
-        'dcos',
         'ktgg',
         'overseas_investment',
         'qylogo',
         'qyxg_qyqs',
-        'qyxg_yuqing',
-        'qyxx_finance_xkz',
         'qyxx_wanfang_zhuanli',
-        'recruit',
         'rjzzq',
         'sfpm_taobao',
         'shgy_tdcr',
@@ -147,27 +143,9 @@ def raw_spark_data_flow():
         'domain_name_website_info',
         'qyxg_debet',
         'qyxx_annual_report_jbxx',
-        'qyxg_bmcprz',
         'qyxg_ccjc',
         'qyxg_china_land_tdcz',
-        'qyxg_dgjwxk',
-        'qyxg_environment_label',
-        'qyxg_gtfwjk',
-        'qyxg_jtyszljl',
-        'qyxg_medicinal_deal',
-        'qyxg_medicinal_info',
-        'qyxg_yzwf',
-        'qyxx_ck',
-        'qyxx_enterprisequalificationforeign',
-        'qyxx_food_prod_cert',
-        'qyxx_gcjljz',
-        'qyxx_gmpauth_prod_cert',
-        'qyxx_hzp_pro_prod_cert',
-        'qyxx_industrial_production_permit',
-        'qyxx_medi_jy_prod_cert',
-        'qyxx_medi_pro_prod_cert',
-        'qyxx_miit_jlzzdwmd',
-        'qyxx_tk'
+        'qyxg_yzwf'
     ]
     
     # 需要被剔除的表(节点)
@@ -238,7 +216,7 @@ def tmp_spark_data_flow(TABLE_DICT):
         return tid_df
 
     # qyxx_bgxx
-    tmp_xgxx_relation_df_1 = get_additional_xgxx_df(XGXX_RELATION, 'qyxx_bgxx')
+    # tmp_xgxx_relation_df_1 = get_additional_xgxx_df(XGXX_RELATION, 'qyxx_bgxx')
     
     # qyxx_liquidation
     tmp_xgxx_relation_df_2 = get_additional_xgxx_df(XGXX_RELATION, 
@@ -265,9 +243,7 @@ def tmp_spark_data_flow(TABLE_DICT):
   
     # 中间数据落地
     
-    tmp_xgxx_relation_df = tmp_xgxx_relation_df_1.union(
-        tmp_xgxx_relation_df_2
-    ).union(
+    tmp_xgxx_relation_df = tmp_xgxx_relation_df_2.union(
         tmp_xgxx_relation_df_3
     ).union(
         tmp_xgxx_relation_df_4
