@@ -12,6 +12,10 @@ cache_to_redis.py
 1、cache指标的计算逻辑更新：
 http://git.bbdops.com/jiangsong/bbd-quant-wx-rpc/blob/master/index/graph/compayRelationInfo.py
 2、由于缓存的是大型企业的指标结果，这里只计算一度关联方
+3、依赖： 
+ redis：2.10.3
+ networkx: 2.0
+ neo4j-driver: 1.5.3
 '''
 
 import os
@@ -1171,7 +1175,7 @@ def run():
         
     test2 = spark.sparkContext.parallelize(sample.rdd.take(3))
 
-    test2.repartition(5000).mapPartitions(
+    sample.rdd.repartition(5000).mapPartitions(
         lambda rows: thread(get_each_comapny_info,  rows)
     ).flatMap(
         lambda x: x
@@ -1190,13 +1194,13 @@ if __name__ == '__main__':
     OUT_PATH = '/user/wanxiang/step_five/'
     
     # 数据库参数
-    NEO4J_URL = 'bolt://10.28.62.51:7687'
+    NEO4J_URL = 'bolt://neo4j.prod.bbdops.com:27687'
     NEO4J_USER = 'wanxiangreader'
-    NEO4J_PASSWORD = '0a3437f5a5add2113305e59408c2d964'
+    NEO4J_PASSWORD = '087e983d822bf8f2ee029a14982b903b'
     
-    REDIS_URL = '10.28.60.15'
-    REDIS_PORT = 26382
-    REDIS_PASSWORD = 'wanxiang'
+    REDIS_URL = '10.28.70.11'
+    REDIS_PORT = 6392
+    REDIS_PASSWORD = 'dhksjf9peuf32d2l'
     
     #sparkSession
     spark = get_spark_session()    
