@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 company_node.py {xgxx_relation} {relation_version} 
-'''
+"""
 
 import sys
 import os
@@ -18,34 +18,45 @@ from pyspark.sql import functions as fun, types as tp
 from pyspark.sql import Window
 from pyspark.sql.functions import row_number
 
+
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def filter_length(col):
-    '''过滤明显是错误的qyxx_id'''
+    """
+    过滤明显是错误的qyxx_id
+    """
     if col and len(col) > 1:
         return True
     else:
         return False
+
 
 def get_label(x):
     try:
         return x.split(';')[2]
     except:
         return ''
-    
+
+
 def filter_tab(x):
     try:
         return True if '    ' not in x else False
@@ -54,9 +65,9 @@ def filter_tab(x):
     
         
 def spark_data_flow():
-    '''
+    """
     STEP 1：数据准备
-    '''
+    """
     filter_chinaese_udf = fun.udf(filter_chinaese, tp.BooleanType())
     filter_comma_udf = fun.udf(filter_comma, tp.BooleanType())
     filter_length_udf = fun.udf(filter_length, tp.BooleanType())
@@ -64,7 +75,7 @@ def spark_data_flow():
         filter_tab, 
         tp.BooleanType()
     )
-    get_label_udf = fun.udf(get_label , tp.StringType())
+    get_label_udf = fun.udf(get_label, tp.StringType())
     window = Window.partitionBy(
         ['bbd_qyxx_id']
     ).orderBy(
@@ -74,8 +85,8 @@ def spark_data_flow():
     # 自然人节点
     person_df = spark.read.csv(
         '{path}/{version}/person_node'.format(
-        path=IN_PATH_TWO,
-        version=RELATION_VERSION))
+            path=IN_PATH_TWO,
+            version=RELATION_VERSION))
 
     # 事件节点    
     event_node = spark.read.csv(
@@ -98,6 +109,13 @@ def spark_data_flow():
          '{version}').format(path=TMP_PATH, 
                              version=RELATION_VERSION))
     tmp_xgxx_relation_df.createOrReplaceTempView('tmp_xgxx_relation_df')
+
+    legal_enterprise_rel_df = spark.read.parquet(
+        ('{path}/'
+         'legal_enterprise_rel_df/'
+         '{version}').format(path=TMP_PATH,
+                             version=RELATION_VERSION))
+    legal_enterprise_rel_df.createOrReplaceTempView('legal_enterprise_rel_df')
 
     raw_event_df = spark.read.parquet(
         ('{path}/'
@@ -126,7 +144,10 @@ def spark_data_flow():
         company_industry,
         regexp_replace(company_companytype,'\"','') company_companytype,
         company_gis_lat,
-        company_gis_lon
+        company_gis_lon,
+        regcap,
+        regno,
+        credit_code
         FROM
         dw.qyxx_basic
         WHERE
@@ -153,7 +174,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         {database}.off_line_relations 
         WHERE 
@@ -182,18 +206,20 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         {database}.off_line_relations 
         WHERE 
         dt='{version}'  
         AND
-        destination_isperson = 0
+        (destination_isperson = 0 or destination_isperson = 2 or destination_isperson = 3)
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     )
 
-    
     tmp_company_3_df = spark.sql(
         '''
         SELECT 
@@ -212,7 +238,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         tid_qyxx_fzjg_merge
         '''
@@ -236,7 +265,10 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         tid_qyxx_fzjg_merge
         '''
@@ -260,12 +292,15 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         tmp_xgxx_relation_df
         '''
     )
-    
+
     tmp_company_6_df = spark.sql(
         '''
         SELECT 
@@ -284,9 +319,12 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
-        raw_event_df
+        legal_enterprise_rel_df
         '''
     )
     
@@ -308,7 +346,37 @@ def spark_data_flow():
         '-' company_industry,
         '-' company_companytype,
         '0' company_gis_lat,
-        '0' company_gis_lon
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
+        FROM 
+        raw_event_df
+        '''
+    )
+    
+    tmp_company_8_df = spark.sql(
+        '''
+        SELECT 
+        bbd_qyxx_id,
+        company_name,
+        '-' ipo_company,
+        '0' regcap_amount,
+        '0' realcap_amount,
+        '-' regcap_currency,
+        '-' realcap_currency,
+        '-' esdate,
+        '-' address,
+        '-' company_enterprise_status,
+        '-' company_province,
+        '-' company_county,
+        '-' company_industry,
+        '-' company_companytype,
+        '0' company_gis_lat,
+        '0' company_gis_lon,
+        '-' regcap,
+        '-' regno,
+        '-' credit_code
         FROM 
         dw.name
         WHERE
@@ -342,6 +410,10 @@ def spark_data_flow():
         )
     ).union(
         tmp_company_7_df.withColumn(
+            'weight', fun.udf(lambda x: 2, tp.IntegerType())('bbd_qyxx_id')
+        )
+    ).union(
+        tmp_company_8_df.withColumn(
             'weight', fun.udf(lambda x: 1, tp.IntegerType())('bbd_qyxx_id')
         )
     ).withColumn(
@@ -352,6 +424,7 @@ def spark_data_flow():
         'row_number == 1'
     )
 
+    # 提取 raw_basic_df 中没有的那些企业信息
     tmp_company_df = tmp_company_all_df.join(
         raw_basic_df,
         'bbd_qyxx_id',
@@ -374,7 +447,10 @@ def spark_data_flow():
         tmp_company_all_df.company_industry,
         tmp_company_all_df.company_companytype,
         tmp_company_all_df.company_gis_lat,
-        tmp_company_all_df.company_gis_lon
+        tmp_company_all_df.company_gis_lon,
+        tmp_company_all_df.regcap,
+        tmp_company_all_df.regno,
+        tmp_company_all_df.credit_code
     ).cache()
 
     # 数据清洗, 该中间结果很重要，是后续构造节点的关键,因此需要落地
@@ -385,6 +461,7 @@ def spark_data_flow():
                    version=RELATION_VERSION)
     )
 
+    # raw_basic_df 中有人物节点，需要剔除
     prd_basic_df = raw_basic_df.union(
         tmp_company_df
     ).join(
@@ -398,7 +475,8 @@ def spark_data_flow():
     ).na.fill(
         {'regcap_amount': 0, 'realcap_amount': 0,
          'company_gis_lat': 0, 'company_gis_lon': 0,
-         'ipo_company': '-'}
+         'ipo_company': '-', 'regcap': '-',
+         'regno': '-', 'credit_code': '-'}
     ).fillna(
         '-'
     ).where(
@@ -434,8 +512,7 @@ def spark_data_flow():
          "{version}").format(path=TMP_PATH, 
                              version=RELATION_VERSION)
     )
-        
-    
+
     # state_owned
     so_count_df = spark.sql(
         '''
@@ -456,8 +533,7 @@ def spark_data_flow():
         '{path}/tid_xgxx_relation_df/{version}'.format(path=TMP_PATH,
                                                        version=RELATION_VERSION)
     )
-        
- 
+
     all_xgxx_info_df = tid_xgxx_relation_df.groupBy(
         ['bbd_qyxx_id', 'bbd_table']
     ).agg(
@@ -486,7 +562,7 @@ def spark_data_flow():
         ['company_county']
     )
 
-    # 中间结果
+    # 中间结果，计算 fzjg\dwtzxx\gdxx\baxx 的属性值
     tmp_role_df = spark.read.parquet(
         "{path}/tmp_role_df/{version}".format(path=TMP_PATH, 
                                               version=RELATION_VERSION))
@@ -554,7 +630,6 @@ def spark_data_flow():
     ).withColumnRenamed(
         'END_ID', 'bbd_qyxx_id'
     ).cache()
-    
 
     '''
     STEP 2.0 合并中间结果，由于涉及到多列解析，因此用rdd来输出最终结果
@@ -600,9 +675,9 @@ def spark_data_flow():
     ).cache()
     
     def get_company_info(row):
-        '''
+        """
         将节点的属性按照一定方式组合，并且输出
-        '''
+        """
         row = row.asDict()
         
         def get_some_xgxx_info(xgxx_name, all_xgxx=row['all_xgxx_info']):
@@ -633,8 +708,8 @@ def spark_data_flow():
             get_some_xgxx_info('shgy_zhaobjg'),
             get_some_xgxx_info('qyxx_wanfang_zhuanli'),
             get_some_xgxx_info('qyxg_qyqs'),
-            get_some_xgxx_info('qyxx_bgxx'),
-            get_some_xgxx_info('recruit'),
+            '0',
+            '0',
             get_some_xgxx_info('qyxx_jyyc'),
             get_some_xgxx_info('sfpm_taobao'),
             get_some_xgxx_info('qyxx_liquidation'),
@@ -646,7 +721,7 @@ def spark_data_flow():
             get_some_xgxx_info('qyxg_xzxk'),
             get_some_xgxx_info('qyxx_sharesimpawn'),
             get_some_xgxx_info('qyxx_mordetail'),
-            get_some_xgxx_info('qyxg_yuqing'),
+            '0',
             get_some_xgxx_info('rjzzq'),
             get_some_xgxx_info('zpzzq'),
             get_some_xgxx_info('domain_name_website_info'),
@@ -665,6 +740,9 @@ def spark_data_flow():
             row['regcap_currency'],
             str(row['realcap_amount']),
             row['realcap_currency'],
+            row['regcap'],
+            row['regno'],
+            row['credit_code'],
             str(row['create_time']),
             str(row['update_time']),
             'Entity;Company'
@@ -686,6 +764,7 @@ def spark_data_flow():
 
     return prd_rdd
 
+
 def get_spark_session():   
     conf = SparkConf()
     conf.setMaster('yarn-client')
@@ -704,12 +783,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_company_node") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     prd_rdd = spark_data_flow()
     
@@ -756,9 +836,21 @@ if __name__ == '__main__':
     fzjg_version = XGXX_RELATION
     jyyc_version = XGXX_RELATION
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
+
+    # 从 /user/wanxiang/tmpdata/tid_qyxx_fzjg_merge 读取分支机构中的公司信息
+    # 从 /user/wanxiang/tmpdata/tmp_xgxx_relation_df、 /user/wanxiang/tmpdata/legal_enterprise_rel_df
+    # 和 /user/wanxiang/tmpdata/raw_event_df 读取事件信息中的公司信息
+    # 从 wanxiang.off_line_relations 表中读取公司信息
+    # 从 dw.name 表中读取公司信息
+    # 将上面所有公司信息做 union
+    # 从 dw.qyxx_basic 表中读取公司信息，与上面的公司信息合并并且去重
+    # 从 /user/wanxiang/step_three 读取人物节点的 node 信息，因为上面的公司中包含自然人，所以需要剔除
+    # 从 /user/wanxiang/step_two 读取事件节点的 node 信息，有些事件与公司 id 重复，需要将这些公司剔除
+    # 将上面获取的公司信息作为中间结果写入 /user/wanxiang/tmpdata/prd_basic_df 在地域节点和行业节点的相关操作中会用到
+    # 从 dw.qyxx_state_owned_enterprise_background 中读取公司是否为国企
+    # 从 /user/wanxiang/tmpdata/tmp_role_df 读取事件信息，为公司添加属性值
+    # 从 /user/wanxiang/inputdata/company_county_mapping_20180103.data 中读取地域信息，为公司添加属性值
+    # 最终将公司节点的 node 写入 /user/wanxiang/step_four
     run()
-    
-    

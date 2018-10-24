@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 time_node_and_edge.py {xgxx_relation} {relation_version}
-'''
+"""
 
 import sys
 import os
@@ -23,22 +23,29 @@ from pyspark.sql import functions as fun, types as tp, Row
 
 
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def get_time_label():
     return 'Entity;Time'
+
 
 def re_date(date, return_type):
     try:
@@ -47,28 +54,34 @@ def re_date(date, return_type):
     except:
         return 0
 
+
 def get_month_range(year, month):
     days = calendar.monthrange(year, int(month))[1]
     return range(1, days+1)
 
+
 def get_timestamp(date):
-    '''将日期转换成linux时间戳'''
+    """
+    将日期转换成linux时间戳
+    """
     try:
         date_obj = datetime.datetime.strptime(date, '%Y-%m-%d')
         return long(time.mktime(date_obj.timetuple()))
     except:
         return 0
 
-def  get_event_frequency_day(enent_time, time_range):
+
+def get_event_frequency_day(event_time, time_range):
     try:
-        return enent_time + '-' + str(random.randint(1, time_range-1))
+        return event_time + '-' + str(random.randint(1, time_range-1))
     except:
         return None
 
+
 def spark_data_flow():
-    '''
+    """
     行业节点，可以根据“企业节点”的中间结果统计
-    '''
+    """
     secondary_time_node_range = 301
     year_range = range(1970, 2025) 
     month_range = [
@@ -89,15 +102,14 @@ def spark_data_flow():
         "{path}/tid_xgxx_relation_df/{version}".format(path=TMP_PATH, 
                                                        version=RELATION_VERSION)
     )
-    
 
     # 年节点
     YEAR_LIST = [str(_) for _ in range(1970, 2025)]
     
     # 月节点
-    MONTH_LIST = ['{0}-{1}'.format(year, month) 
-                              for year in year_range
-                              for month in month_range]
+    MONTH_LIST = ['{0}-{1}'.format(year, month)
+                  for year in year_range
+                  for month in month_range]
     # 日节点
     DAY_LIST = []
     FREQUENCY_LIST = []
@@ -131,18 +143,17 @@ def spark_data_flow():
         get_time_label_udf().alias(':LABEL')
     )
     
-    
     '''
     时间节点与其他节点的关系
     '''
         
     # 时间-时间关系
     YEAR_RELATION = [
-        (YEAR_LIST[index-1], YEAR_LIST[index]) 
+        (YEAR_LIST[index-1], YEAR_LIST[index])
         for index in range(1, len(YEAR_LIST))]
     
     MONTH_RELATION = [
-        ('{0}-{1}'.format(year, month), year) 
+        ('{0}-{1}'.format(year, month), str(year))
         for year in year_range
         for month in month_range]
     
@@ -227,12 +238,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_time_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     prd_time_node_df, prd_time_edge_df = spark_data_flow()
     
@@ -253,7 +265,8 @@ def run():
     prd_time_edge_df.coalesce(600).write.csv(
         '{path}/{version}/time_edge'.format(path=OUT_PATH,
                                             version=RELATION_VERSION))    
-    
+
+
 if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
@@ -261,9 +274,10 @@ if __name__ == '__main__':
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_seven/'
     
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
-    run()
-    
-    
+
+    # 构建年、月、日以及日的二级节点，获得时间节点的 node，时间节点与时间节点相连的 edge
+    # 从 /user/wanxiang/tmpdata/tid_xgxx_relation_df 读取事件信息，获取事件与日的二级节点相连的 edge
+    # 将这些 node 和 edge 写入 /user/wanxiang/step_seven
+    # run()

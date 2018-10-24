@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 根据输入的日期参数，提前该日期前的所有黑名单企业
 
 提交命令：
@@ -10,7 +10,7 @@
 --driver-class-path /usr/share/java/mysql-connector-java-5.1.39.jar \
 --jars /usr/share/java/mysql-connector-java-5.1.39.jar \
 balck_list_to_redis.py {xgxx_relation}
-'''
+"""
 
 import sys
 import datetime
@@ -33,9 +33,9 @@ def filter_date(date):
 
 
 def spark_data_flow():
-    '''
+    """
     利用spark从mysql中读取黑名单数据
-    '''
+    """
     filter_date_udf = fun.udf(filter_date, tp.BooleanType())
     
     black = spark.read.jdbc(url=URL, table="black_list", 
@@ -71,7 +71,7 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_time_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
@@ -92,19 +92,20 @@ def run():
     pipe.execute()
     
     print "SUCESS !!"
-    
+
+
 if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
-    URL='jdbc:mysql://mysql12.prod.bbdops.com:53606/bbd_higgs?characterEncoding=UTF-8'
+    URL = 'jdbc:mysql://mysql12.prod.bbdops.com:53606/bbd_higgs?characterEncoding=UTF-8'
     PROP = {"user": "airpal", 
-            "password":"G2sorqM82RcVoPrb8z5V", 
+            "password": "G2sorqM82RcVoPrb8z5V",
             "driver": "com.mysql.jdbc.Driver",
             "ip": "mysql12.prod.bbdops.com",
             "db_name": "bbd_higgs",
             "port": "53606"}
     
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
     
     run()

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 对数据进行预热，提前加载数据到内存中
-'''
+"""
 
 from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
@@ -9,24 +9,27 @@ from neo4j.v1 import GraphDatabase
 
 
 def get_path(driver, bbd_qyxx_id):
-    '''
+    """
     获取单个节点的关系
-    '''
+    """
     with driver.session(max_retry_time=3) as session:
         with session.begin_transaction() as tx:
             edges = tx.run(
                 '''
-                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-[:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH*1..8]-(b) 
+                match p=(a:Company {bbd_qyxx_id: {bbd_qyxx_id}})-
+                [:INVEST|SUPERVISOR|DIRECTOR|LEGAL|EXECUTIVE|BRANCH*1..8]-(b) 
                 return p
                 ''',
                 bbd_qyxx_id=bbd_qyxx_id)
     return edges
 
+
 def get_path_data(iterator):
     my_driver = GraphDatabase.driver(URI, auth=AUTH)
     for each_bbd_qyxx_id in iterator:
-        paths= get_path(my_driver, each_bbd_qyxx_id)
+        paths = get_path(my_driver, each_bbd_qyxx_id)
         yield len(paths.data())
+
 
 def spark_data_flow():
     tar_company = spark.sparkContext.textFile(IN_FILE, 
@@ -39,6 +42,7 @@ def spark_data_flow():
     )
     
     return prd_rdd
+
 
 def get_spark_session():   
     conf = SparkConf()
@@ -58,7 +62,7 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_time_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
@@ -70,14 +74,15 @@ def run():
     data = result.take(300)
     for each_item in data:
         print each_item
-    
+
+
 if __name__ == '__main__':
     # 输入参数
     URI = 'bolt://10.28.52.151:7690'
-    AUTH=("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB")
+    AUTH = ("neo4j", "fyW1KFSYNfxRtw1ivAJOrnV3AKkaQUfB")
     IN_FILE = '/user/wanxiang/inputdata/raw_wanxiang_preheat_node_20171122.data'
     
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
     
     run()

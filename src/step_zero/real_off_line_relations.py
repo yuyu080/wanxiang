@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 real_off_line_relations.py {relation_version}
-'''
+"""
 import sys
 import os
 import json
@@ -17,9 +17,9 @@ from pyspark.sql import functions as fun, types as tp
 
 
 def analysis(col):
-    '''
+    """
     json解析
-    '''
+    """
     try:
         analysised_dict_list = json.loads(col)
         return analysised_dict_list
@@ -28,25 +28,27 @@ def analysis(col):
 
     
 def get_id():
-    '''
+    """
     获取一个空字段
-    '''
+    """
     return None
 
+
 def repalce_null_value(col):
-    '''
+    """
     将''替换成'NULL'
-    '''
+    """
     try:
         return col if col != '' else None
     except:
         return None
 
+
 def filter_bad_case(relation_type, des_id, source_isperson):
-    '''
+    """
     过滤把企业当做自然人的错误节点: 
     假如一个节点在baxx表中，同时该节点的标签本为Company，那么就将这个关系过滤
-    '''
+    """
     if (relation_type != 'INVEST' and 
             relation_type != 'LEGAL' and 
             des_id and source_isperson):
@@ -55,11 +57,15 @@ def filter_bad_case(relation_type, des_id, source_isperson):
         return True
 
 
-def is_concat(destination_bbd_id,source_bbd_id,source_isperson):
+def is_concat(destination_bbd_id, source_bbd_id, source_isperson):
+    """
+    判断一条数据的 source_bbd_id 是否需要修改成 destination_bbd_id + '_' + source_bbd_id 的形式
+    """
     if source_isperson == '2' and destination_bbd_id is not None and source_bbd_id is not None:
         return True
     else:
         return False
+
 
 def spark_data_flow():
     string_to_list_udf = fun.udf(
@@ -69,10 +75,10 @@ def spark_data_flow():
     is_concat_udf = fun.udf(is_concat, tp.BooleanType())
     
     def get_basic_df():
-        '''
+        """
         获取【法人】关联方
-        '''
-        #将条数展开
+        """
+        # 将条数展开
         os.system(
             '''
             hadoop fs -rmr {path}/{version}/basic_df
@@ -104,10 +110,10 @@ def spark_data_flow():
                                                version=RELATION_VERSION))
     
     def get_baxx_df():
-        '''
+        """
         获取【董监高】关联方
-        '''
-        #将条数展开     
+        """
+        # 将条数展开
         os.system(
             '''
             hadoop fs -rmr {path}/{version}/baxx_df
@@ -140,10 +146,10 @@ def spark_data_flow():
                                               version=RELATION_VERSION))
     
     def get_gdxx_df():
-        '''
+        """
         获取【股东】关联方
-        '''
-        #将条数展开
+        """
+        # 将条数展开
         os.system(
             '''
             hadoop fs -rmr {path}/{version}/gdxx_df
@@ -176,6 +182,8 @@ def spark_data_flow():
                                               version=RELATION_VERSION))
 
     # 触发计算逻辑
+
+    # 获取疑似数据
     raw_yisi = spark.sql(
         '''
         SELECT
@@ -204,6 +212,7 @@ def spark_data_flow():
         '{path}/{version}/baxx_df'.format(path=TMP_PATH,
                                           version=RELATION_VERSION))
 
+    # 得到全量工商数据
     off_line_relations = basic_df.union(
         gdxx_df
     ).union(
@@ -238,14 +247,15 @@ def spark_data_flow():
         'position'
     ).cache()
 
+    # 修改 source_isperson 为 2 的数据的 source_bbd_id
     off_line_relations_with_yisi = off_line_relations_with_yisi.select(
         'company_name',
         'bbd_qyxx_id',
         'source_name',
         fun.when(
             is_concat_udf(off_line_relations_with_yisi.destination_bbd_id,
-                          off_line_relations_with_yisi.source_bbd_id,off_line_relations_with_yisi.source_isperson),
-            fun.concat_ws('_',off_line_relations_with_yisi.destination_bbd_id,
+                          off_line_relations_with_yisi.source_bbd_id, off_line_relations_with_yisi.source_isperson),
+            fun.concat_ws('_', off_line_relations_with_yisi.destination_bbd_id,
                           off_line_relations_with_yisi.source_bbd_id).alias('source_bbd_id')
         ).otherwise(
             off_line_relations_with_yisi.source_bbd_id
@@ -294,7 +304,7 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_real_off_line_relations") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
@@ -310,7 +320,10 @@ if __name__ == '__main__':
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_two/'
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
+
+    # 从 dw.qyxx_basic dw.qyxx_gdxx dw.qyxx_baxx 中读取全量工商数据
+    # 从 dw.uniq_person_id_v2 中读取疑似数据
+    # 将处理过的全量工商数据导入 wanxiang.off_line_relations，以便之后在获取角色节点、公司节点、人物节点时读取
     run()

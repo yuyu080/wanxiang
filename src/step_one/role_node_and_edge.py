@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 role_node_and_edge.py {xgxx_relation} {relation_version} {database}
-'''
+"""
 
 import sys
 import os
@@ -20,25 +20,31 @@ from pyspark.sql import functions as fun, types as tp
 
 
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
 
+
 def get_id(src, des, relation, position):
-    '''
+    """
     生成规则：md5（起点name+终点id+关系类型+关系名）
     由于源ID有中文，因此这里需要做容错
-    '''
+    """
     try:
         role_id = hashlib.md5(src.encode('utf-8') + 
                               des.encode('utf-8') +
@@ -47,14 +53,15 @@ def get_id(src, des, relation, position):
         return role_id.hexdigest()
     except:
         return ''
-        
+
+
 def get_branch_id(regno_or_creditcode, 
                   regno, 
                   name):
-    '''
+    """
     生成规则：md5（起点name+终点id+关系类型+关系名）
     由于源ID有中文，因此这里需要做容错
-    '''
+    """
     try:
         role_id = hashlib.md5(regno_or_creditcode.encode('utf-8') + 
                               regno.encode('utf-8') +
@@ -64,17 +71,22 @@ def get_branch_id(regno_or_creditcode,
     except:
         return ''
 
+
 def is_invest(col):
     if 'INVEST' in col:
         return True
     else:
         return False
 
+
 def get_role_label(label):
     return 'Entity;Role;{0}'.format(label.lower().capitalize())
 
+
 def get_chinese(string):
-    '''获得中文字符串'''
+    """
+    获得中文字符串
+    """
     try:
         result = re.findall(ur'[\u4e00-\u9fa5]', string)
         if result:
@@ -101,7 +113,8 @@ def spark_data_flow():
     
     get_relation_label_3_udf = fun.udf(
         partial(lambda r: r, 'VIRTUAL'), tp.StringType())    
-    
+
+    # 获取工商数据中的角色节点信息
     raw_role_df = spark.sql(
         '''
         SELECT 
@@ -115,11 +128,6 @@ def spark_data_flow():
         {database}.off_line_relations 
         WHERE 
         dt='{version}'
-        AND
-        (source_isperson = 0 or source_isperson = 1 or source_isperson = 3)
-        AND
-        (destination_isperson = 0 or destination_isperson = 1 or destination_isperson = 3)
-
         '''.format(database=DATABASE,
                    version=RELATION_VERSION)
     ).where(
@@ -357,6 +365,7 @@ def spark_data_flow():
     return (prd_isinvest_role_node_df, prd_role_node_df,
             prd_isinvest_role_edge_df, prd_role_edge_df)
 
+
 def get_spark_session():   
     conf = SparkConf()
     conf.setMaster('yarn-client')
@@ -375,12 +384,13 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_role_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark 
-    
+
+
 def run():
     (prd_isinvest_role_node_df, prd_role_node_df,
      prd_isinvest_role_edge_df, prd_role_edge_df) = spark_data_flow()
@@ -432,7 +442,8 @@ def run():
         '{path}/{version}/role_edge'.format(
             path=OUT_PATH,
             version=RELATION_VERSION))
-    
+
+
 if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
@@ -441,9 +452,12 @@ if __name__ == '__main__':
     TMP_PATH = '/user/wanxiang/tmpdata/'
     OUT_PATH = '/user/wanxiang/step_one/'
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
+
+    # 从 off_line_relations 中获取工商信息中的角色节点信息
+    # 从 qyxx_gdxx 中获取 Invest 角色节点的投资信息
+    # 从 qyxx_fzjg_merge 中获取分支机构角色节点的信息
+    # 将中间结果分支机构信息写入 /user/wanxiang/tmpdata/tid_qyxx_fzjg_merge 中，之后在获取公司节点时需要读取
+    # 将最后结果角色节点的 node 和 edge 数据写入 /user/wanxiang/step_one/ 中
     run()
-    
-    

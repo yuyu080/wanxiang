@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 提交命令：
 /opt/spark-2.0.2/bin/spark-submit \
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
 contact_node_and_edge.py {xgxx_relation} {relation_version} 
-'''
+"""
 import sys
 import os
 import re
@@ -15,20 +15,27 @@ from pyspark.sql import SparkSession
 from pyspark.conf import SparkConf
 from pyspark.sql import functions as fun, types as tp
 
+
 def filter_comma(col):
-    '''ID中逗号或为空值，则将该记录删除'''
+    """
+    ID中逗号或为空值，则将该记录删除
+    """
     if not col or ',' in col or u'\uff0c' in col or '"' in col or '\\' in col:
         return False
     else:
         return True
 
+
 def filter_chinaese(col):
-    '''字段中只要包含中文，将其过滤'''
+    """
+    字段中只要包含中文，将其过滤
+    """
     if col:
         match = re.search(ur'[\u4e00-\u9fa5]', col)
         return False if match else True
     else:
         return False
+
 
 def spark_data_flow():
     get_phone_label_udf = fun.udf(
@@ -90,7 +97,7 @@ def spark_data_flow():
         get_phone_type_udf('phone').alias(':TYPE')
     ).distinct()
     
-    prd_email_node_df =  tid_nb_df.select(
+    prd_email_node_df = tid_nb_df.select(
         tid_nb_df.email.alias('bbd_contact_id:ID'),
         fun.unix_timestamp().alias('create_time:long'),
         fun.unix_timestamp().alias('update_time:long'),
@@ -105,8 +112,9 @@ def spark_data_flow():
         get_email_type_udf('email').alias(':TYPE')
     ).distinct()
 
-    return (prd_phone_node_df,prd_phone_edge_df,
-            prd_email_node_df,prd_email_edge_df)
+    return (prd_phone_node_df, prd_phone_edge_df,
+            prd_email_node_df, prd_email_edge_df)
+
 
 def get_spark_session():   
     conf = SparkConf()
@@ -126,15 +134,16 @@ def get_spark_session():
     spark = SparkSession \
         .builder \
         .appName("wanxiang_event_node_and_edge") \
-        .config(conf = conf) \
+        .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
         
     return spark
-    
+
+
 def run():    
-    (prd_phone_node_df,prd_phone_edge_df,
-     prd_email_node_df,prd_email_edge_df) = spark_data_flow()
+    (prd_phone_node_df, prd_phone_edge_df,
+     prd_email_node_df, prd_email_edge_df) = spark_data_flow()
     
     os.system(
         '''
@@ -163,14 +172,16 @@ def run():
             path=OUT_PATH,
             version=RELATION_VERSION))    
 
+
 if __name__ == '__main__':
     # 输入参数
     XGXX_RELATION = sys.argv[1]
     RELATION_VERSION = sys.argv[2]
     OUT_PATH = '/user/wanxiang/step_eight/'
 
-    #sparkSession
+    # sparkSession
     spark = get_spark_session()
-    
+
+    # 从 dw.qyxx_annual_report_jbxx 表中读取年报中的 Phone 和 Email 信息
+    # 得到 Phone 和 Email 的 node 和 它们与公司相连的 edge，写入 /user/wanxiang/step_eight
     run()
-    
