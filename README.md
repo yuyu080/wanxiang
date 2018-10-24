@@ -55,7 +55,7 @@ r = redis.Redis(connection_pool=pool)
 r.set('wx_neo4j_his_info.201806', 'bolt://10.28.62.206:7687')   
 r.delete('wx_neo4j_his_info.201712')   
 
-注意需要更新3个redis的信息，其余2个为：
+注意需要更新3个redis的信息，其余2个为：    
 10.28.70.11:6392
 dhksjf9peuf32d2l
 
