@@ -60,7 +60,7 @@ r.delete('wx_neo4j_his_info.201712')
 dhksjf9peuf32d2l
 
 10.28.70.11:6391
-IUT807ogjbkao
+IUT807ogjbkaoi
 
 ## redis缓存加载流程
 
