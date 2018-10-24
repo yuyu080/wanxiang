@@ -12,15 +12,12 @@ cache_to_redis.py
 1、cache指标的计算逻辑更新：
 http://git.bbdops.com/jiangsong/bbd-quant-wx-rpc/blob/master/index/graph/compayRelationInfo.py
 2、由于缓存的是大型企业的指标结果，这里只计算一度关联方
-<<<<<<< HEAD
 3、依赖： 
  redis：2.10.3
  networkx: 2.0
  neo4j-driver: 1.5.3
-'''
-=======
 """
->>>>>>> 1715a7e0f0969192aee361b67183481ddb2a0984
+
 
 import os
 import sys
