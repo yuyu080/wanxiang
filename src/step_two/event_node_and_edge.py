@@ -88,7 +88,10 @@ def new_to_old(bbd_table):
     bbd_table_dict = {"legal_dishonest_persons_subject_to_enforcement": "dishonesty",
                       "legal_persons_subject_to_enforcement": "zhixing",
                       "legal_court_notice": "rmfygg"}
-    return bbd_table_dict.get(bbd_table, bbd_table)
+    if bbd_table in bbd_table_dict.keys():
+        return bbd_table_dict.get(bbd_table, bbd_table)
+    else:
+        return
 
 
 def raw_spark_data_flow():
@@ -320,6 +323,8 @@ def rel_event_data_flow():
         get_standard_date_udf('event_time').alias('event_time'),
         'dt',
         'company_name'
+    ).where(
+        'bbd_table is not null'
     )
 
     os.system(
