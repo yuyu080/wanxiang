@@ -188,6 +188,8 @@ def spark_data_flow():
         filter_comma_udf('c')
     ).where(
         filter_chinaese_udf('c')
+    ).where(
+        raw_role_df.b != 'null'
     ).cache()
     
     # 给投资节点加上投资比例，其余节点的比例为空
