@@ -1134,7 +1134,7 @@ def to_each_server(url, port, password, iterator):
     pipline = client.pipeline(transaction=True)
     
     for each_data in iterator:
-        pipline.set('test_quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), 
+        pipline.set('quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), 
                     json.dumps(each_data[1]))
     pipline.execute()
 
