@@ -7,8 +7,6 @@
 --master yarn \
 --deploy-mode client \
 --queue project.wanxiang \
---driver-class-path /usr/share/java/mysql-connector-java-5.1.39.jar \
---jars /usr/share/java/mysql-connector-java-5.1.39.jar \
 balck_list_to_redis.py {xgxx_relation}
 """
 
@@ -38,8 +36,11 @@ def spark_data_flow():
     """
     filter_date_udf = fun.udf(filter_date, tp.BooleanType())
     
-    black = spark.read.jdbc(url=URL, table="black_list", 
-                            properties=PROP)
+    black = spark.sql(
+        '''
+        select * from dw.black_list where dt='{version}'
+        '''.format(version=XGXX_RELATION)
+    )
     
     black_qyxx_id = black.where(
         filter_date_udf('create_time')

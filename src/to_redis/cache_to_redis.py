@@ -1092,8 +1092,8 @@ def get_prd_digraph(company_correlative_nodes, bbd_qyxx_id, pipline,
 def get_each_comapny_info(rows):
     driver = GraphDatabase.driver(NEO4J_URL, 
                                   auth=(NEO4J_USER, NEO4J_PASSWORD))
-    pool = redis.ConnectionPool(host=REDIS_URL, port=REDIS_PORT, 
-                                password=REDIS_PASSWORD, db=0)
+    pool = redis.ConnectionPool(host=REDIS_URL_ONE, port=REDIS_PORT_ONE, 
+                                password=REDIS_PASSWORD_ONE, db=0)
     client = redis.Redis(connection_pool=pool)
     pipline = client.pipeline(transaction=True)
     
@@ -1129,15 +1129,22 @@ def thread(fun, data):
     
     
 def to_redis(iterator):
-    pool = redis.ConnectionPool(host=REDIS_URL, port=REDIS_PORT, 
-                                password=REDIS_PASSWORD, db=0)
-    client = redis.Redis(connection_pool=pool)
-    pipline = client.pipeline(transaction=True)
-    
-    for each_data in iterator:
-        pipline.set('quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), json.dumps(each_data[1]))
-    pipline.execute()
 
+    def to_each_server(url, port, password):
+        pool = redis.ConnectionPool(host=url, port=port, 
+                                    password=password, db=0)
+        client = redis.Redis(connection_pool=pool)
+        pipline = client.pipeline(transaction=True)
+        
+        for each_data in iterator:
+            pipline.set('quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), json.dumps(each_data[1]))
+        pipline.execute()
+
+    # 需要同时写多个redis
+    to_each_server(REDIS_URL_ONE, REDIS_PORT_ONE, REDIS_PASSWORD_ONE)
+    to_each_server(REDIS_URL_TWO, REDIS_PORT_TWO, REDIS_PASSWORD_TWO)
+    to_each_server(REDIS_URL_THREE, REDIS_PORT_THREE, REDIS_PASSWORD_THREE)
+    
 
 def get_spark_session():   
     conf = SparkConf()
@@ -1196,9 +1203,20 @@ if __name__ == '__main__':
     NEO4J_USER = 'wanxiangreader'
     NEO4J_PASSWORD = '087e983d822bf8f2ee029a14982b903b'
     
-    REDIS_URL = '10.28.70.11'
-    REDIS_PORT = 6392
-    REDIS_PASSWORD = 'dhksjf9peuf32d2l'
+    # 4G redis 3.2-HA
+    REDIS_URL_ONE = '10.28.70.11'
+    REDIS_PORT_ONE = 6392
+    REDIS_PASSWORD_ONE = 'dhksjf9peuf32d2l'
+    
+    # 4G redis 3.4-5core
+    REDIS_URL_TWO = '10.28.60.15'
+    REDIS_PORT_TWO = 26382
+    REDIS_PASSWORD_TWO = 'wanxiang'    
+    
+    # 2G redis grey
+    REDIS_URL_THREE = '10.28.70.11'
+    REDIS_PORT_THREE = 6391
+    REDIS_PASSWORD_THREE = 'IUT807ogjbkaoi'
     
     # sparkSession
     spark = get_spark_session()    
