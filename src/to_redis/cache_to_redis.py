@@ -1127,23 +1127,22 @@ def thread(fun, data):
         
     return results    
     
+def to_each_server(url, port, password, iterator):
+    pool = redis.ConnectionPool(host=url, port=port, 
+                                password=password, db=0)
+    client = redis.Redis(connection_pool=pool)
+    pipline = client.pipeline(transaction=True)
     
-def to_redis(iterator):
+    for each_data in iterator:
+        pipline.set('test_quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), 
+                    json.dumps(each_data[1]))
+    pipline.execute()
 
-    def to_each_server(url, port, password):
-        pool = redis.ConnectionPool(host=url, port=port, 
-                                    password=password, db=0)
-        client = redis.Redis(connection_pool=pool)
-        pipline = client.pipeline(transaction=True)
-        
-        for each_data in iterator:
-            pipline.set('quant_wx_index:companyRelationInfo:{}'.format(each_data[0]), json.dumps(each_data[1]))
-        pipline.execute()
-
+def to_redis(data):
     # 需要同时写多个redis
-    to_each_server(REDIS_URL_ONE, REDIS_PORT_ONE, REDIS_PASSWORD_ONE)
-    to_each_server(REDIS_URL_TWO, REDIS_PORT_TWO, REDIS_PASSWORD_TWO)
-    to_each_server(REDIS_URL_THREE, REDIS_PORT_THREE, REDIS_PASSWORD_THREE)
+    to_each_server(REDIS_URL_ONE, REDIS_PORT_ONE, REDIS_PASSWORD_ONE, data)
+    to_each_server(REDIS_URL_TWO, REDIS_PORT_TWO, REDIS_PASSWORD_TWO, data)
+    to_each_server(REDIS_URL_THREE, REDIS_PORT_THREE, REDIS_PASSWORD_THREE, data)
     
 
 def get_spark_session():   
@@ -1163,7 +1162,7 @@ def get_spark_session():
 
     spark = SparkSession \
         .builder \
-        .appName("wanxiang_region_node_and_edge") \
+        .appName("cache_to_redis") \
         .config(conf=conf) \
         .enableHiveSupport() \
         .getOrCreate()  
@@ -1179,12 +1178,24 @@ def run():
         
     test2 = spark.sparkContext.parallelize(sample.rdd.take(3))
 
-    sample.rdd.repartition(5000).mapPartitions(
+    result = sample.rdd.mapPartitions(
         lambda rows: thread(get_each_comapny_info,  rows)
     ).flatMap(
         lambda x: x
-    ).foreachPartition(
-        to_redis
+    ).cache()
+    
+    # 写入不同的redis
+    result.foreachPartition(
+        lambda data: to_each_server(REDIS_URL_ONE, REDIS_PORT_ONE, 
+                                    REDIS_PASSWORD_ONE, data)
+    )
+    result.foreachPartition(
+        lambda data: to_each_server(REDIS_URL_TWO, REDIS_PORT_TWO, 
+                                    REDIS_PASSWORD_TWO, data)
+    )
+    result.foreachPartition(
+        lambda data: to_each_server(REDIS_URL_THREE, REDIS_PORT_THREE, 
+                                    REDIS_PASSWORD_THREE, data)
     )
 
 
