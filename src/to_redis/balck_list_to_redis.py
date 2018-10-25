@@ -80,19 +80,25 @@ def get_spark_session():
 
 def run():
     black_qyxx_id = spark_data_flow()
-    pool = redis.ConnectionPool(host='10.28.60.15', port=26382, 
-                                password='wanxiang', db=0)
-    r = redis.Redis(connection_pool=pool)
-    
-    pipe = r.pipeline(transaction=True)
-    
-    for each_id in black_qyxx_id:
-        pipe.sadd('wx_graph_black_set', each_id)
-    
-    pipe.execute()
-    
-    print "SUCESS !!"
 
+    def to_each_server(url, port, password):    
+        pool = redis.ConnectionPool(host=url, port=port, 
+                                    password=password, db=0)
+        r = redis.Redis(connection_pool=pool)
+        
+        pipe = r.pipeline(transaction=True)
+        
+        for each_id in black_qyxx_id:
+            pipe.sadd('wx_graph_black_set', each_id)
+        
+        pipe.execute()
+        
+        print "SUCESS !!"    
+
+    # 需要同时写多个redis
+    to_each_server(REDIS_URL_ONE, REDIS_PORT_ONE, REDIS_PASSWORD_ONE)
+    to_each_server(REDIS_URL_TWO, REDIS_PORT_TWO, REDIS_PASSWORD_TWO)
+    to_each_server(REDIS_URL_THREE, REDIS_PORT_THREE, REDIS_PASSWORD_THREE)
 
 if __name__ == '__main__':
     # 输入参数
@@ -104,6 +110,21 @@ if __name__ == '__main__':
             "ip": "mysql12.prod.bbdops.com",
             "db_name": "bbd_higgs",
             "port": "53606"}
+    
+    # 4G redis 3.2-HA
+    REDIS_URL_ONE = '10.28.70.11'
+    REDIS_PORT_ONE = 6392
+    REDIS_PASSWORD_ONE = 'dhksjf9peuf32d2l'
+    
+    # 4G redis 3.4-5core
+    REDIS_URL_TWO = '10.28.60.15'
+    REDIS_PORT_TWO = 26382
+    REDIS_PASSWORD_TWO = 'wanxiang'    
+    
+    # 2G redis grey
+    REDIS_URL_THREE = '10.28.70.11'
+    REDIS_PORT_THREE = 6391
+    REDIS_PASSWORD_THREE = 'IUT807ogjbkaoi'    
     
     # sparkSession
     spark = get_spark_session()
