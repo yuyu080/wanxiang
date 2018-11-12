@@ -183,6 +183,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         RELATION_VERSION = sys.argv[1]
         XGXX_RELATION = sys.argv[1]
+    elif len(sys.argv) == 3:
+        RELATION_VERSION = sys.argv[1]
+        XGXX_RELATION = sys.argv[2]
     else:
         RELATION_VERSION = '20180322'
         XGXX_RELATION = '20180322'
