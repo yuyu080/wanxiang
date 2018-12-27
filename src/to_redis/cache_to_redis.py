@@ -1178,7 +1178,7 @@ def run():
         
     test2 = spark.sparkContext.parallelize(sample.rdd.take(3))
 
-    result = sample.rdd.mapPartitions(
+    result = sample.rdd.repartition(5000).mapPartitions(
         lambda rows: thread(get_each_comapny_info,  rows)
     ).flatMap(
         lambda x: x
