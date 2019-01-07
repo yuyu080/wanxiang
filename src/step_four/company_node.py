@@ -724,7 +724,7 @@ def spark_data_flow():
             '0',
             get_some_xgxx_info('rjzzq'),
             get_some_xgxx_info('zpzzq'),
-            get_some_xgxx_info('domain_name_website_info'),
+            get_some_xgxx_info('prop_domain_website'),
             get_some_xgxx_info('overseas_investment'),
             get_some_xgxx_info('qyxx_annual_report_jbxx'),
             str(row['company_gis_lon']),

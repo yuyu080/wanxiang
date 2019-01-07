@@ -143,7 +143,7 @@ def raw_spark_data_flow():
         'qyxg_xzxk',
         'qyxx_sharesimpawn',
         'qyxx_mordetail',
-        'domain_name_website_info',
+        'prop_domain_website',
         'qyxg_debet',
         'qyxx_annual_report_jbxx',
         'qyxg_ccjc',
